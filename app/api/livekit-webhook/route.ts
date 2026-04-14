@@ -52,6 +52,42 @@ export async function POST(request: Request) {
       );
     }
 
+    if (event.event === "participant_joined") {
+      await fetch(`${supabaseUrl}/rest/v1/attendance_events`, {
+        method: "POST",
+        headers: {
+          apikey: serviceRoleKey,
+          Authorization: `Bearer ${serviceRoleKey}`,
+          "Content-Type": "application/json",
+          Prefer: "return=minimal",
+        },
+        body: JSON.stringify({
+          room_slug: event.room?.name,
+          participant_identity: event.participant?.identity,
+          participant_name: event.participant?.name ?? null,
+          event_type: "joined",
+        }),
+      });
+    }
+
+    if (event.event === "participant_left") {
+      await fetch(`${supabaseUrl}/rest/v1/attendance_events`, {
+        method: "POST",
+        headers: {
+          apikey: serviceRoleKey,
+          Authorization: `Bearer ${serviceRoleKey}`,
+          "Content-Type": "application/json",
+          Prefer: "return=minimal",
+        },
+        body: JSON.stringify({
+          room_slug: event.room?.name,
+          participant_identity: event.participant?.identity,
+          participant_name: event.participant?.name ?? null,
+          event_type: "left",
+        }),
+      });
+    }
+
     return Response.json({ ok: true });
   } catch {
     return new Response("Invalid webhook", { status: 400 });
