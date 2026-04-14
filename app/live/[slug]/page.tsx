@@ -1,106 +1,107 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { liveRooms } from "@/lib/verbum-data";
+import { supabase } from "@/lib/supabase";
 
 type PageProps = {
-  params: {
+  params: Promise<{
     slug: string;
-  };
+  }>;
 };
 
-export function generateStaticParams() {
-  return liveRooms.map((r) => ({ slug: r.slug }));
-}
+export default async function LiveRoomPage({ params }: PageProps) {
+  const { slug } = await params;
 
-export default function LiveRoomPage({ params }: PageProps) {
-  const room = liveRooms.find((item) => item.slug === params.slug);
-  if (!room) notFound();
+  const [{ data: room, error: roomError }, { data: prayers }] = await Promise.all([
+    supabase
+      .from("live_rooms")
+      .select("slug, title, description, status, time_label, host, kind")
+      .eq("slug", slug)
+      .single(),
+    supabase
+      .from("prayer_posts")
+      .select("author_name, message, created_at")
+      .eq("room_slug", slug)
+      .order("created_at", { ascending: false })
+      .limit(10),
+  ]);
 
-  const isLive = room.status === "live";
-  const isSoon = room.status === "soon";
-  const statusColour = isLive ? "#86efac" : isSoon ? "#fcd34d" : "#cbd5e1";
+  if (roomError || !room) {
+    notFound();
+  }
 
   return (
     <main style={{ padding: "4rem 1.25rem" }}>
       <div style={{ maxWidth: 960, margin: "0 auto" }}>
-
-        <Link href="/live" style={{ opacity: 0.6, textDecoration: "none", fontSize: 14 }}>
+        <Link href="/live" style={{ opacity: 0.7, textDecoration: "none" }}>
           ← Back to live
         </Link>
 
         <div style={{
-          marginTop: 24, borderRadius: 28, padding: 32,
-          border: isLive ? "1px solid rgba(134,239,172,0.2)" : "1px solid rgba(255,255,255,0.08)",
-          background: isLive ? "linear-gradient(160deg, rgba(94,167,115,0.07) 0%, rgba(255,255,255,0.02) 100%)" : "rgba(255,255,255,0.03)",
+          marginTop: 24,
+          border: "1px solid rgba(255,255,255,0.08)",
+          borderRadius: 28, padding: 28,
+          background: "rgba(255,255,255,0.03)",
         }}>
+          <p style={{ opacity: 0.65, marginBottom: 10 }}>{room.time_label}</p>
 
-          <div style={{
-            display: "inline-flex", alignItems: "center", gap: 7,
-            padding: "0.35rem 0.8rem", borderRadius: 999,
-            fontSize: 13, marginBottom: 20,
-            color: statusColour,
-            border: `1px solid ${statusColour}40`,
-            background: `${statusColour}12`,
-          }}>
-            {isLive && (
-              <span style={{ width: 7, height: 7, borderRadius: "50%", background: statusColour, display: "inline-block", animation: "pulse 2s ease infinite" }} />
-            )}
-            {room.timeLabel}
-          </div>
-
-          <h1 style={{ fontSize: "clamp(2rem, 4vw, 3.3rem)", marginBottom: 14, lineHeight: 1.05 }}>
+          <h1 style={{ fontSize: "clamp(2rem, 4vw, 3.3rem)", marginBottom: 16 }}>
             {room.title}
           </h1>
 
-          <p style={{ opacity: 0.8, lineHeight: 1.8, maxWidth: 680, marginBottom: 24 }}>
+          <p style={{ opacity: 0.82, lineHeight: 1.8, maxWidth: 760 }}>
             {room.description}
           </p>
 
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 16px", borderRadius: 12, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", fontSize: 13, opacity: 0.75, marginBottom: 28 }}>
-            <span>🎙</span>
-            <span>{room.host}</span>
+          <div style={{ marginTop: 24, display: "grid", gap: 12 }}>
+            <div style={{ padding: 18, borderRadius: 20, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}>
+              <strong>Host:</strong> {room.host}
+            </div>
+            <div style={{ padding: 18, borderRadius: 20, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}>
+              <strong>Type:</strong> {room.kind}
+            </div>
           </div>
 
           <div style={{
-            minHeight: 320, borderRadius: 20,
-            border: isLive ? "1px solid rgba(134,239,172,0.15)" : "1px dashed rgba(255,255,255,0.12)",
-            background: isLive ? "rgba(94,167,115,0.04)" : "transparent",
+            marginTop: 24, minHeight: 260, borderRadius: 24,
+            border: "1px dashed rgba(255,255,255,0.15)",
             display: "grid", placeItems: "center",
-            textAlign: "center", padding: 32,
+            textAlign: "center", padding: 24,
           }}>
-            {isLive ? (
-              <div>
-                <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(94,167,115,0.12)", border: "1px solid rgba(134,239,172,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, margin: "0 auto 16px" }}>
-                  🎙
-                </div>
-                <p style={{ color: "#86efac", fontWeight: 600, fontSize: 14, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>
-                  You are in the room
-                </p>
-                <p style={{ opacity: 0.6, maxWidth: 440, lineHeight: 1.7, fontSize: 14 }}>
-                  Live audio, prayer chat, and presence count arrive in Phase 2. For now — be present, pray, and gather.
-                </p>
-              </div>
-            ) : (
-              <div>
-                <p style={{ fontSize: "1.1rem", marginBottom: 10, opacity: 0.8 }}>
-                  {isSoon ? "This room opens soon." : "This room is not live yet."}
-                </p>
-                <p style={{ opacity: 0.5, maxWidth: 440, lineHeight: 1.7, fontSize: 14 }}>
-                  {room.timeLabel} · Come back when it starts.
-                </p>
-              </div>
-            )}
+            <div>
+              <p style={{ fontSize: "1.1rem", marginBottom: 10 }}>
+                Broadcast player area
+              </p>
+              <p style={{ opacity: 0.7, maxWidth: 520, lineHeight: 1.7 }}>
+                In Phase 4, this becomes the real live player and presence area.
+              </p>
+            </div>
           </div>
 
+          <div style={{ marginTop: 28 }}>
+            <h2 style={{ marginBottom: 16 }}>Prayer wall</h2>
+
+            <div style={{ display: "grid", gap: 14 }}>
+              {(prayers ?? []).map((post, index) => (
+                <article
+                  key={`${post.author_name}-${index}`}
+                  style={{
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    borderRadius: 18, padding: 18,
+                    background: "rgba(255,255,255,0.02)",
+                  }}
+                >
+                  <p style={{ fontWeight: 700, marginBottom: 8 }}>{post.author_name}</p>
+                  <p style={{ opacity: 0.86, lineHeight: 1.7 }}>{post.message}</p>
+                </article>
+              ))}
+
+              {(!prayers || prayers.length === 0) ? (
+                <p style={{ opacity: 0.7 }}>No prayer posts yet.</p>
+              ) : null}
+            </div>
+          </div>
         </div>
       </div>
-
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.35; transform: scale(0.75); }
-        }
-      `}</style>
     </main>
   );
 }
