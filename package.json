@@ -8,10 +8,13 @@
     "start": "next start"
   },
   "dependencies": {
-    "next": "15.3.8",
+    "next": "15.3.0",
     "react": "^19",
     "react-dom": "^19",
-    "@supabase/supabase-js": "^2.49.4"
+    "@supabase/supabase-js": "^2.49.4",
+    "livekit-client": "^2.13.2",
+    "@livekit/components-react": "^2.9.6",
+    "livekit-server-sdk": "^2.13.1"
   },
   "devDependencies": {
     "@types/node": "^20",
