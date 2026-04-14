@@ -63,7 +63,21 @@ export default async function LiveRoomPage({ params }: PageProps) {
 
           <LivekitRoomShell roomName={slug} />
 
+                   <div
+            style={{
+              marginTop: 20,
+              padding: 16,
+              borderRadius: 16,
+              background: "rgba(255,255,255,0.02)",
+              border: "1px solid rgba(255,255,255,0.06)",
+            }}
+          >
+            <p style={{ opacity: 0.6, marginBottom: 6 }}>Focus</p>
+            <p style={{ margin: 0 }}>"Be still, and know that I am God." — Psalm 46:10</p>
+          </div>
+
           <LiveRoomRealtime roomSlug={slug} initialPosts={prayers ?? []} />
+
         </div>
       </div>
     </main>
