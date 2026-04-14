@@ -49,11 +49,20 @@ export async function POST(request: Request) {
       );
     }
 
-    const token = new AccessToken(apiKey, apiSecret, {
-      identity: user.id,
-      name: user.email ?? "User",
-      ttl: "1h",
-    });
+    const { data: profile } = await supabase
+  .from("profiles")
+  .select("display_name")
+  .eq("id", user.id)
+  .single();
+
+const displayName = profile?.display_name || user.email || "User";
+
+const token = new AccessToken(apiKey, apiSecret, {
+  identity: user.id,
+  name: displayName,
+  ttl: "1h",
+});
+
 
     token.addGrant({
       roomJoin: true,
