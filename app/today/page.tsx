@@ -61,7 +61,25 @@ export default async function TodayPage() {
           </section>
 
         </div>
+              <div style={{
+          marginTop: 40,
+          padding: 24,
+          borderRadius: 24,
+          border: "1px solid rgba(255,255,255,0.08)",
+          background: "rgba(255,255,255,0.03)"
+        }}>
+          <p style={{ opacity: 0.7, marginBottom: 12 }}>
+            Pray this with others
+          </p>
+          <a href="/live/evening-prayer" style={{ color: "#c8a96a", fontSize: 15, fontWeight: 500 }}>
+            Enter a live gathering →
+          </a>
+        </div>
+
       </div>
     </main>
+  );
+}
+
   );
 }
