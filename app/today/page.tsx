@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+export const dynamic = "force-dynamic";
 
 export default async function TodayPage() {
   const { data, error } = await supabase
