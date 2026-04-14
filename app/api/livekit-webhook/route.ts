@@ -1,4 +1,5 @@
 import { WebhookReceiver } from "livekit-server-sdk";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
@@ -34,6 +35,11 @@ export async function POST(request: Request) {
           body: JSON.stringify({ is_live: true }),
         }
       );
+
+      await supabaseAdmin.from("room_sessions").insert({
+        room_slug: event.room?.name,
+        started_at: new Date().toISOString(),
+      });
     }
 
     if (event.event === "room_finished") {
@@ -50,6 +56,12 @@ export async function POST(request: Request) {
           body: JSON.stringify({ is_live: false }),
         }
       );
+
+      await supabaseAdmin
+        .from("room_sessions")
+        .update({ ended_at: new Date().toISOString() })
+        .eq("room_slug", event.room?.name)
+        .is("ended_at", null);
     }
 
     if (event.event === "participant_joined") {
@@ -68,6 +80,30 @@ export async function POST(request: Request) {
           event_type: "joined",
         }),
       });
+
+      const { data: session } = await supabaseAdmin
+        .from("room_sessions")
+        .select("id, joins_count, peak_attendance")
+        .eq("room_slug", event.room?.name)
+        .is("ended_at", null)
+        .single();
+
+      if (session) {
+        const newJoins = (session.joins_count ?? 0) + 1;
+        const { count: currentCount } = await supabaseAdmin
+          .from("attendance_events")
+          .select("*", { count: "exact", head: true })
+          .eq("room_slug", event.room?.name)
+          .eq("event_type", "joined");
+
+        await supabaseAdmin
+          .from("room_sessions")
+          .update({
+            joins_count: newJoins,
+            peak_attendance: Math.max(session.peak_attendance ?? 0, currentCount ?? 0),
+          })
+          .eq("id", session.id);
+      }
     }
 
     if (event.event === "participant_left") {
@@ -86,6 +122,20 @@ export async function POST(request: Request) {
           event_type: "left",
         }),
       });
+
+      const { data: session } = await supabaseAdmin
+        .from("room_sessions")
+        .select("id, leaves_count")
+        .eq("room_slug", event.room?.name)
+        .is("ended_at", null)
+        .single();
+
+      if (session) {
+        await supabaseAdmin
+          .from("room_sessions")
+          .update({ leaves_count: (session.leaves_count ?? 0) + 1 })
+          .eq("id", session.id);
+      }
     }
 
     return Response.json({ ok: true });
