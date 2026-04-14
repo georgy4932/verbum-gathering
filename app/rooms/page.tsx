@@ -1,6 +1,13 @@
-import { fellowshipRooms } from "@/lib/verbum-data";
+import { supabase } from "@/lib/supabase";
 
-export default function RoomsPage() {
+export default async function RoomsPage() {
+  const { data, error } = await supabase
+    .from("fellowship_rooms")
+    .select("slug, name, description, members_label")
+    .order("sort_order", { ascending: true });
+
+  const rooms = data ?? [];
+
   return (
     <main style={{ padding: "4rem 1.25rem" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
@@ -17,8 +24,10 @@ export default function RoomsPage() {
           Join believers for encouragement, testimony, prayer, and shared growth in the Word.
         </p>
 
+        {error ? <p style={{ color: "#f87171" }}>Unable to load fellowship rooms.</p> : null}
+
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
-          {fellowshipRooms.map((room) => (
+          {rooms.map((room) => (
             <article
               key={room.slug}
               style={{
@@ -28,11 +37,9 @@ export default function RoomsPage() {
                 display: "flex", flexDirection: "column", gap: 12,
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#86efac", fontWeight: 600 }}>
-                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#86efac", display: "inline-block" }} />
-                  {room.membersLabel}
-                </div>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#86efac", fontWeight: 600 }}>
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#86efac", display: "inline-block" }} />
+                {room.members_label}
               </div>
 
               <h2 style={{ fontSize: "1.3rem", margin: 0, lineHeight: 1.2 }}>{room.name}</h2>
@@ -41,18 +48,12 @@ export default function RoomsPage() {
                 {room.description}
               </p>
 
-              <button
-                type="button"
-                style={{
-                  marginTop: 4, padding: "0.75rem 1rem",
-                  borderRadius: 999,
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  background: "transparent",
-                  color: "rgba(255,255,255,0.75)",
-                  fontSize: 13, fontWeight: 500,
-                  cursor: "pointer", width: "100%",
-                }}
-              >
+              <button type="button" style={{
+                marginTop: 4, padding: "0.75rem 1rem",
+                borderRadius: 999, border: "1px solid rgba(255,255,255,0.12)",
+                background: "transparent", color: "rgba(255,255,255,0.75)",
+                fontSize: 13, fontWeight: 500, cursor: "pointer", width: "100%",
+              }}>
                 Open room
               </button>
             </article>
