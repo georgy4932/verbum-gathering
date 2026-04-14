@@ -42,7 +42,9 @@ export default function PrayerWall({ roomSlug, initialPosts }: PrayerWallProps) 
   }, [roomSlug]);
 
   return (
-    <div style={{ display: "grid", gap: 14 }}>
+   <div style={{ display: "grid", gap: 14 }}>
+      <p style={{ opacity: 0.6, marginBottom: 10 }}>Shared quietly with others</p>
+
       {posts.length === 0 ? (
         <p style={{ opacity: 0.7 }}>No prayer posts yet.</p>
       ) : null}
