@@ -21,12 +21,13 @@ export default async function LiveRoomPage({ params }: PageProps) {
       .select("slug, title, description, status, time_label, host, kind")
       .eq("slug", slug)
       .single(),
-    supabase
-      .from("prayer_posts")
-      .select("id, author_name, message, created_at")
-      .eq("room_slug", slug)
-      .order("created_at", { ascending: false })
-      .limit(20),
+  supabase
+  .from("prayer_posts")
+  .select("id, author_name, message, created_at")
+  .eq("room_slug", slug)
+  .eq("is_hidden", false)
+  .order("created_at", { ascending: false })
+  .limit(20),
   ]);
 
   if (roomError || !room) {
