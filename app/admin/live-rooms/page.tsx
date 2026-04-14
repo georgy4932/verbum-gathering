@@ -45,8 +45,8 @@ export default async function AdminLiveRoomsPage() {
             >
               <h2 style={{ marginTop: 0 }}>{room.title}</h2>
               <p>Slug: {room.slug}</p>
-              <p>Starts: {room.starts_at ?? "Not scheduled"}</p>
-              <p>Ends: {room.ends_at ?? "Not scheduled"}</p>
+             <p>Starts: {room.starts_at ? new Date(room.starts_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" }) : "Not scheduled"}</p>
+<p>Ends: {room.ends_at ? new Date(room.ends_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" }) : "Not scheduled"}</p>
               <p>Status: {room.is_live ? "Live now" : "Offline"}</p>
             </article>
           ))}
