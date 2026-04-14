@@ -1,14 +1,12 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { supabaseBrowser } from "@/components/supabase-browser";
 
 type PrayerFormProps = {
   roomSlug: string;
 };
 
 export default function PrayerForm({ roomSlug }: PrayerFormProps) {
-  const [authorName, setAuthorName] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [notice, setNotice] = useState("");
@@ -17,23 +15,24 @@ export default function PrayerForm({ roomSlug }: PrayerFormProps) {
     event.preventDefault();
     setNotice("");
 
-    if (!authorName.trim() || !message.trim()) {
-      setNotice("Please enter your name and prayer message.");
+    if (!message.trim()) {
+      setNotice("Please write a prayer message.");
       return;
     }
 
     setSending(true);
 
-    const { error } = await supabaseBrowser.from("prayer_posts").insert({
-      room_slug: roomSlug,
-      author_name: authorName.trim(),
-      message: message.trim(),
+    const response = await fetch("/api/prayer-post", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ roomSlug, message }),
     });
 
+    const data = await response.json();
     setSending(false);
 
-    if (error) {
-      setNotice("Unable to send prayer right now.");
+    if (!response.ok) {
+      setNotice(data.error || "Unable to send prayer right now.");
       return;
     }
 
@@ -54,20 +53,6 @@ export default function PrayerForm({ roomSlug }: PrayerFormProps) {
       }}
     >
       <h3 style={{ margin: 0 }}>Share a prayer</h3>
-
-      <input
-        value={authorName}
-        onChange={(e) => setAuthorName(e.target.value)}
-        placeholder="Your name"
-        style={{
-          minHeight: 46,
-          borderRadius: 12,
-          border: "1px solid rgba(255,255,255,0.12)",
-          background: "rgba(255,255,255,0.02)",
-          color: "inherit",
-          padding: "0 0.9rem",
-        }}
-      />
 
       <textarea
         value={message}
