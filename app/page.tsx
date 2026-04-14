@@ -64,11 +64,15 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section style={{ padding: "2rem 1.25rem 3rem" }}>
+      <section style={{ padding: "2rem 1.25rem 4rem" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16 }}>
           <div style={{ border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: 28, background: "rgba(255,255,255,0.03)", display: "flex", flexDirection: "column", gap: 12 }}>
-            <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.4em", textTransform: "uppercase", color: "#6b5530" }}>Today</p>
-            <h3 style={{ fontSize: "1.3rem", margin: 0 }}>{devotion?.title}</h3>
+            <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.4em", textTransform: "uppercase", color: "#6b5530" }}>
+              Today
+            </p>
+            <h3 style={{ fontSize: "1.3rem", margin: 0 }}>
+              {devotion?.title}
+            </h3>
             <p style={{ fontFamily: "'IM Fell English', serif", fontStyle: "italic", opacity: 0.75, lineHeight: 1.75, fontSize: 15, borderLeft: "2px solid #6b5530", paddingLeft: 14 }}>
               {devotion?.scripture}
             </p>
@@ -78,8 +82,12 @@ export default async function HomePage() {
           </div>
 
           <div style={{ border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: 28, background: "rgba(255,255,255,0.03)", display: "flex", flexDirection: "column", gap: 12 }}>
-            <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.4em", textTransform: "uppercase", color: "#6b5530" }}>Gathering spaces</p>
-            <h3 style={{ fontSize: "1.3rem", margin: 0 }}>Fellowship</h3>
+            <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.4em", textTransform: "uppercase", color: "#6b5530" }}>
+              Gathering spaces
+            </p>
+            <h3 style={{ fontSize: "1.3rem", margin: 0 }}>
+              Fellowship
+            </h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {(fellowshipRooms ?? []).map((r) => (
                 <div key={r.slug} style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
