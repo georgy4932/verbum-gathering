@@ -45,7 +45,7 @@ function HostControls() {
           cursor: "pointer",
         }}
       >
-        {micEnabled ? "Mute microphone" : "Unmute microphone"}
+        {micEnabled ? "Mute" : "Unmute microphone"}
       </button>
     </div>
   );
@@ -75,7 +75,7 @@ function ParticipantList() {
         background: "rgba(255,255,255,0.03)",
       }}
     >
-      <h3 style={{ marginTop: 0 }}>In the room</h3>
+      <h3 style={{ marginTop: 0 }}>Present</h3>
       {names.length === 0 ? (
         <p style={{ opacity: 0.75, marginBottom: 0 }}>No one connected yet.</p>
       ) : (
@@ -112,7 +112,7 @@ export default function LivekitRoomShell({ roomName }: LivekitRoomShellProps) {
     setJoining(false);
 
     if (!response.ok || !data.token) {
-      setError(data.error || "Unable to join room");
+      setError(data.error || "Unable to enter gathering");
       return;
     }
 
@@ -124,36 +124,39 @@ export default function LivekitRoomShell({ roomName }: LivekitRoomShellProps) {
       <div
         style={{
           marginTop: 24,
-          padding: 24,
+          padding: 28,
           borderRadius: 24,
           border: "1px solid rgba(255,255,255,0.08)",
           background: "rgba(255,255,255,0.03)",
-          display: "grid",
-          gap: 14,
+          textAlign: "center",
         }}
       >
-        <h2 style={{ margin: 0 }}>Join broadcast</h2>
-        <p style={{ opacity: 0.78, margin: 0 }}>
-          Enter this live room with your saved profile name.
+        <p style={{ opacity: 0.6, marginBottom: 12 }}>
+          You are entering a live gathering
         </p>
-
+        <h2 style={{ marginBottom: 16 }}>Take a moment. Be still.</h2>
+        <p style={{ opacity: 0.75, maxWidth: 420, margin: "0 auto 24px", lineHeight: 1.6 }}>
+          Others are already here — praying, listening, waiting.
+        </p>
         <button
           type="button"
           onClick={joinRoom}
           disabled={!serverUrl || joining}
           style={{
             minHeight: 44,
+            padding: "0 2rem",
             borderRadius: 999,
             border: "1px solid rgba(255,255,255,0.12)",
             background: "rgba(255,255,255,0.06)",
             color: "inherit",
             cursor: "pointer",
+            fontSize: "1rem",
           }}
         >
-          {joining ? "Joining..." : "Enter live room"}
+          {joining ? "Entering..." : "Enter quietly"}
         </button>
 
-        {error ? <p style={{ color: "#fca5a5", margin: 0 }}>{error}</p> : null}
+        {error ? <p style={{ color: "#fca5a5", margin: "16px 0 0" }}>{error}</p> : null}
       </div>
     );
   }
@@ -175,7 +178,24 @@ export default function LivekitRoomShell({ roomName }: LivekitRoomShellProps) {
             background: "rgba(255,255,255,0.03)",
           }}
         >
-          <h2 style={{ marginTop: 0 }}>Live broadcast</h2>
+          <p style={{ opacity: 0.7, marginBottom: 12 }}>
+            You are here with others.
+          </p>
+          <h2 style={{ marginTop: 0 }}>Live gathering</h2>
+          <div
+            style={{
+              marginTop: 20,
+              padding: 16,
+              borderRadius: 16,
+              background: "rgba(255,255,255,0.02)",
+              border: "1px solid rgba(255,255,255,0.06)",
+            }}
+          >
+            <p style={{ opacity: 0.6, marginBottom: 6 }}>Focus</p>
+            <p style={{ margin: 0 }}>
+              "Be still, and know that I am God." — Psalm 46:10
+            </p>
+          </div>
           <RoomStatus />
           <RoomAudioRenderer />
           <HostControls />
