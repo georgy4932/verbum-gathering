@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const [{ data: rooms }, { data: devotion }, { data: fellowshipRooms }] = await Promise.all([
