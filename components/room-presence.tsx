@@ -64,7 +64,8 @@ export default function RoomPresence({ roomSlug }: RoomPresenceProps) {
         background: "#86efac", display: "inline-block",
         animation: "pulse 2s ease infinite",
       }} />
-      <span><strong>{count}</strong> gathering now</span>
+     <span><strong>{count}</strong> praying together</span>
+
       <style>{`
         @keyframes pulse {
           0%, 100% { opacity: 1; transform: scale(1); }
