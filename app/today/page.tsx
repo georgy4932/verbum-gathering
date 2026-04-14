@@ -42,40 +42,4 @@ export default async function TodayPage() {
           </section>
 
           <section style={{ padding: "28px 32px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", opacity: 0.5, marginBottom: 14 }}>
-              Reflection
-            </p>
-            <p style={{ opacity: 0.86, lineHeight: 1.85, fontSize: "1.05rem" }}>
-              {data.reflection}
-            </p>
-          </section>
-
-          <section style={{ padding: "28px 32px" }}>
-            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", opacity: 0.5, marginBottom: 14 }}>
-              Prayer
-            </p>
-            <p style={{ opacity: 0.86, lineHeight: 1.85, fontSize: "1.05rem" }}>
-              {data.prayer}
-            </p>
-          </section>
-        </div>
-
-        <div style={{
-          marginTop: 40,
-          padding: 24,
-          borderRadius: 24,
-          border: "1px solid rgba(255,255,255,0.08)",
-          background: "rgba(255,255,255,0.03)"
-        }}>
-          <p style={{ opacity: 0.7, marginBottom: 12 }}>
-            Pray this with others
-          </p>
-          <a href="/live/evening-prayer" style={{ color: "#c8a96a", fontSize: 15, fontWeight: 500 }}>
-            Enter a live gathering →
-          </a>
-        </div>
-
-      </div>
-    </main>
-  );
-}
+            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", opacity: 0.5,​​​​​​​​​​​​​​​​
