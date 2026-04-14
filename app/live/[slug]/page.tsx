@@ -8,6 +8,13 @@ type PageProps = {
   }>;
 };
 
+export async function generateStaticParams() {
+  const { data } = await supabase
+    .from("live_rooms")
+    .select("slug");
+  return (data ?? []).map((room) => ({ slug: room.slug }));
+}
+
 export default async function LiveRoomPage({ params }: PageProps) {
   const { slug } = await params;
 
@@ -36,12 +43,7 @@ export default async function LiveRoomPage({ params }: PageProps) {
           ← Back to live
         </Link>
 
-        <div style={{
-          marginTop: 24,
-          border: "1px solid rgba(255,255,255,0.08)",
-          borderRadius: 28, padding: 28,
-          background: "rgba(255,255,255,0.03)",
-        }}>
+        <div style={{ marginTop: 24, border: "1px solid rgba(255,255,255,0.08)", borderRadius: 28, padding: 28, background: "rgba(255,255,255,0.03)" }}>
           <p style={{ opacity: 0.65, marginBottom: 10 }}>{room.time_label}</p>
 
           <h1 style={{ fontSize: "clamp(2rem, 4vw, 3.3rem)", marginBottom: 16 }}>
@@ -61,16 +63,9 @@ export default async function LiveRoomPage({ params }: PageProps) {
             </div>
           </div>
 
-          <div style={{
-            marginTop: 24, minHeight: 260, borderRadius: 24,
-            border: "1px dashed rgba(255,255,255,0.15)",
-            display: "grid", placeItems: "center",
-            textAlign: "center", padding: 24,
-          }}>
+          <div style={{ marginTop: 24, minHeight: 260, borderRadius: 24, border: "1px dashed rgba(255,255,255,0.15)", display: "grid", placeItems: "center", textAlign: "center", padding: 24 }}>
             <div>
-              <p style={{ fontSize: "1.1rem", marginBottom: 10 }}>
-                Broadcast player area
-              </p>
+              <p style={{ fontSize: "1.1rem", marginBottom: 10 }}>Broadcast player area</p>
               <p style={{ opacity: 0.7, maxWidth: 520, lineHeight: 1.7 }}>
                 In Phase 4, this becomes the real live player and presence area.
               </p>
@@ -79,22 +74,13 @@ export default async function LiveRoomPage({ params }: PageProps) {
 
           <div style={{ marginTop: 28 }}>
             <h2 style={{ marginBottom: 16 }}>Prayer wall</h2>
-
             <div style={{ display: "grid", gap: 14 }}>
               {(prayers ?? []).map((post, index) => (
-                <article
-                  key={`${post.author_name}-${index}`}
-                  style={{
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    borderRadius: 18, padding: 18,
-                    background: "rgba(255,255,255,0.02)",
-                  }}
-                >
+                <article key={`${post.author_name}-${index}`} style={{ border: "1px solid rgba(255,255,255,0.08)", borderRadius: 18, padding: 18, background: "rgba(255,255,255,0.02)" }}>
                   <p style={{ fontWeight: 700, marginBottom: 8 }}>{post.author_name}</p>
                   <p style={{ opacity: 0.86, lineHeight: 1.7 }}>{post.message}</p>
                 </article>
               ))}
-
               {(!prayers || prayers.length === 0) ? (
                 <p style={{ opacity: 0.7 }}>No prayer posts yet.</p>
               ) : null}
