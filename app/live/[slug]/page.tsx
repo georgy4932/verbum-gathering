@@ -1,14 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-export const dynamic = "force-dynamic"
+import LiveRoomRealtime from "@/components/live-room-realtime";
+
+export const dynamic = "force-dynamic";
+
 type PageProps = {
   params: Promise<{
     slug: string;
   }>;
 };
-
-
 
 export default async function LiveRoomPage({ params }: PageProps) {
   const { slug } = await params;
@@ -21,10 +22,10 @@ export default async function LiveRoomPage({ params }: PageProps) {
       .single(),
     supabase
       .from("prayer_posts")
-      .select("author_name, message, created_at")
+      .select("id, author_name, message, created_at")
       .eq("room_slug", slug)
       .order("created_at", { ascending: false })
-      .limit(10),
+      .limit(20),
   ]);
 
   if (roomError || !room) {
@@ -62,25 +63,12 @@ export default async function LiveRoomPage({ params }: PageProps) {
             <div>
               <p style={{ fontSize: "1.1rem", marginBottom: 10 }}>Broadcast player area</p>
               <p style={{ opacity: 0.7, maxWidth: 520, lineHeight: 1.7 }}>
-                In Phase 4, this becomes the real live player and presence area.
+                This is where LiveKit or your streaming player will go in the next phase.
               </p>
             </div>
           </div>
 
-          <div style={{ marginTop: 28 }}>
-            <h2 style={{ marginBottom: 16 }}>Prayer wall</h2>
-            <div style={{ display: "grid", gap: 14 }}>
-              {(prayers ?? []).map((post, index) => (
-                <article key={`${post.author_name}-${index}`} style={{ border: "1px solid rgba(255,255,255,0.08)", borderRadius: 18, padding: 18, background: "rgba(255,255,255,0.02)" }}>
-                  <p style={{ fontWeight: 700, marginBottom: 8 }}>{post.author_name}</p>
-                  <p style={{ opacity: 0.86, lineHeight: 1.7 }}>{post.message}</p>
-                </article>
-              ))}
-              {(!prayers || prayers.length === 0) ? (
-                <p style={{ opacity: 0.7 }}>No prayer posts yet.</p>
-              ) : null}
-            </div>
-          </div>
+          <LiveRoomRealtime roomSlug={slug} initialPosts={prayers ?? []} />
         </div>
       </div>
     </main>
