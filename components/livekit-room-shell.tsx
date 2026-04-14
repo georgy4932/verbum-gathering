@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   LiveKitRoom,
   RoomAudioRenderer,
@@ -20,17 +20,9 @@ function RoomStatus() {
   return <p style={{ opacity: 0.75 }}>Connection: {state}</p>;
 }
 
-function HostControls({ isHost }: { isHost: boolean }) {
+function HostControls() {
   const { localParticipant } = useLocalParticipant();
   const [micEnabled, setMicEnabled] = useState(false);
-
-  if (!isHost) {
-    return (
-      <p style={{ opacity: 0.6, marginTop: 16 }}>
-        You are listening. Only the host can speak.
-      </p>
-    );
-  }
 
   async function toggleMic() {
     const nextValue = !micEnabled;
@@ -101,7 +93,6 @@ function ParticipantList() {
 
 export default function LivekitRoomShell({ roomName }: LivekitRoomShellProps) {
   const [token, setToken] = useState("");
-  const [isHost, setIsHost] = useState(false);
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState("");
 
@@ -120,17 +111,11 @@ export default function LivekitRoomShell({ roomName }: LivekitRoomShellProps) {
     const data = await response.json();
     setJoining(false);
 
-    if (response.status === 401) {
-      setError("You must be signed in to join this broadcast.");
-      return;
-    }
-
     if (!response.ok || !data.token) {
       setError(data.error || "Unable to join room");
       return;
     }
 
-    setIsHost(Boolean(data.isHost));
     setToken(data.token);
   }
 
@@ -148,11 +133,14 @@ export default function LivekitRoomShell({ roomName }: LivekitRoomShellProps) {
         }}
       >
         <h2 style={{ margin: 0 }}>Join broadcast</h2>
+        <p style={{ opacity: 0.78, margin: 0 }}>
+          Enter this live room with your saved profile name.
+        </p>
 
         <button
           type="button"
           onClick={joinRoom}
-          disabled={joining}
+          disabled={!serverUrl || joining}
           style={{
             minHeight: 44,
             borderRadius: 999,
@@ -165,16 +153,7 @@ export default function LivekitRoomShell({ roomName }: LivekitRoomShellProps) {
           {joining ? "Joining..." : "Enter live room"}
         </button>
 
-        {error ? (
-          <p style={{ color: "#fca5a5", margin: 0 }}>
-            {error}{" "}
-            {error.includes("signed in") && (
-              <a href="/sign-in" style={{ color: "#fca5a5" }}>
-                Sign in here →
-              </a>
-            )}
-          </p>
-        ) : null}
+        {error ? <p style={{ color: "#fca5a5", margin: 0 }}>{error}</p> : null}
       </div>
     );
   }
@@ -199,7 +178,7 @@ export default function LivekitRoomShell({ roomName }: LivekitRoomShellProps) {
           <h2 style={{ marginTop: 0 }}>Live broadcast</h2>
           <RoomStatus />
           <RoomAudioRenderer />
-          <HostControls isHost={isHost} />
+          <HostControls />
           <ParticipantList />
         </div>
       </LiveKitRoom>
