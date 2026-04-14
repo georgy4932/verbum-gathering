@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
@@ -20,6 +21,23 @@ export async function POST(request: Request) {
       return Response.json({ error: "Not signed in" }, { status: 401 });
     }
 
+    const nowIso = new Date().toISOString();
+
+    const { data: ban } = await supabase
+      .from("room_bans")
+      .select("reason, banned_until")
+      .eq("room_slug", roomSlug)
+      .eq("user_id", user.id)
+      .or(`banned_until.is.null,banned_until.gt.${nowIso}`)
+      .maybeSingle();
+
+    if (ban) {
+      return Response.json(
+        { error: ban.reason ? `You cannot post in this room right now: ${ban.reason}` : "You cannot post in this room right now." },
+        { status: 403 }
+      );
+    }
+
     const { data: profile } = await supabase
       .from("profiles")
       .select("display_name")
@@ -30,17 +48,18 @@ export async function POST(request: Request) {
       return Response.json({ error: "Complete onboarding first" }, { status: 400 });
     }
 
-    const since = new Date(Date.now() - 30_000).toISOString();
-
-    const { count } = await supabase
-      .from("prayer_posts")
-      .select("*", { count: "exact", head: true })
+    const { data: cooldown } = await supabase
+      .from("user_cooldowns")
+      .select("expires_at")
       .eq("user_id", user.id)
-      .gte("created_at", since);
+      .eq("room_slug", roomSlug)
+      .eq("action_type", "prayer_post")
+      .gt("expires_at", nowIso)
+      .maybeSingle();
 
-    if ((count ?? 0) >= 1) {
+    if (cooldown) {
       return Response.json(
-        { error: "Please wait a few moments before posting again." },
+        { error: "Please wait a little before posting again." },
         { status: 429 }
       );
     }
@@ -55,6 +74,18 @@ export async function POST(request: Request) {
     if (error) {
       return Response.json({ error: "Unable to share prayer" }, { status: 500 });
     }
+
+    await supabaseAdmin.from("user_cooldowns").upsert(
+      {
+        user_id: user.id,
+        room_slug: roomSlug,
+        action_type: "prayer_post",
+        expires_at: new Date(Date.now() + 30_000).toISOString(),
+      },
+      {
+        onConflict: "user_id,room_slug,action_type",
+      }
+    );
 
     return Response.json({ ok: true });
   } catch {
