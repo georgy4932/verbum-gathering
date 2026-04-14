@@ -1,8 +1,18 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { getCurrentUserProfile } from "@/lib/profile";
+import HomeLiveNow from "@/components/home-live-now";
+
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
+  const { user, profile } = await getCurrentUserProfile();
+
+  if (user && !profile) {
+    redirect("/onboarding");
+  }
+
   const [{ data: rooms }, { data: devotion }, { data: fellowshipRooms }] = await Promise.all([
     supabase.from("live_rooms").select("slug, title, description, status, time_label").order("sort_order").limit(3),
     supabase.from("devotions").select("title, scripture").order("published_at", { ascending: false }).limit(1).single(),
@@ -34,6 +44,8 @@ export default async function HomePage() {
           </Link>
         </div>
 
+        <HomeLiveNow />
+
         <h2 style={{ fontSize: "clamp(1.4rem, 3vw, 2rem)", marginBottom: 20, opacity: 0.9 }}>Live now</h2>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16, marginBottom: 56 }}>
           {(rooms ?? []).map((room) => (
@@ -45,36 +57,4 @@ export default async function HomePage() {
           ))}
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16 }}>
-          <div style={{ border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: 28, background: "rgba(255,255,255,0.03)", display: "flex", flexDirection: "column", gap: 12 }}>
-            <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.4em", textTransform: "uppercase", color: "#6b5530" }}>Today</p>
-            <h3 style={{ fontSize: "1.3rem", margin: 0 }}>{devotion?.title}</h3>
-            <p style={{ fontFamily: "'IM Fell English', serif", fontStyle: "italic", opacity: 0.75, lineHeight: 1.75, fontSize: 15, borderLeft: "2px solid #6b5530", paddingLeft: 14 }}>
-              {devotion?.scripture}
-            </p>
-            <Link href="/today" style={{ color: "#c8a96a", fontSize: 13, fontWeight: 500, marginTop: "auto" }}>
-              Open today's devotion →
-            </Link>
-          </div>
-
-          <div style={{ border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: 28, background: "rgba(255,255,255,0.03)", display: "flex", flexDirection: "column", gap: 12 }}>
-            <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.4em", textTransform: "uppercase", color: "#6b5530" }}>Rooms</p>
-            <h3 style={{ fontSize: "1.3rem", margin: 0 }}>Fellowship spaces</h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {(fellowshipRooms ?? []).map((r) => (
-                <div key={r.slug} style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                  <span style={{ opacity: 0.8 }}>{r.name}</span>
-                  <span style={{ color: "#86efac", fontSize: 11, fontWeight: 600 }}>{r.members_label}</span>
-                </div>
-              ))}
-            </div>
-            <Link href="/rooms" style={{ color: "#c8a96a", fontSize: 13, fontWeight: 500, marginTop: "auto" }}>
-              Explore rooms →
-            </Link>
-          </div>
-        </div>
-
-      </div>
-    </main>
-  );
-}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(​​​​​​​​​​​​​​​​
