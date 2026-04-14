@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import LiveRoomRealtime from "@/components/live-room-realtime";
+import LivekitRoomShell from "@/components/livekit-room-shell";
 
 export const dynamic = "force-dynamic";
 
@@ -59,14 +60,7 @@ export default async function LiveRoomPage({ params }: PageProps) {
             </div>
           </div>
 
-          <div style={{ marginTop: 24, minHeight: 260, borderRadius: 24, border: "1px dashed rgba(255,255,255,0.15)", display: "grid", placeItems: "center", textAlign: "center", padding: 24 }}>
-            <div>
-              <p style={{ fontSize: "1.1rem", marginBottom: 10 }}>Broadcast player area</p>
-              <p style={{ opacity: 0.7, maxWidth: 520, lineHeight: 1.7 }}>
-                This is where LiveKit or your streaming player will go in the next phase.
-              </p>
-            </div>
-          </div>
+          <LivekitRoomShell roomName={slug} />
 
           <LiveRoomRealtime roomSlug={slug} initialPosts={prayers ?? []} />
         </div>
