@@ -49,13 +49,13 @@ export async function POST(request: Request) {
       );
     }
 
-    const { data: profile } = await supabase
+    const { data: userProfile } = await supabase
   .from("profiles")
   .select("display_name")
   .eq("id", user.id)
   .single();
 
-const displayName = profile?.display_name || user.email || "User";
+const displayName = userProfile?.display_name || user.email || "User";
 
 const token = new AccessToken(apiKey, apiSecret, {
   identity: user.id,
