@@ -1,19 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-
+export const dynamic = "force-dynamic"
 type PageProps = {
   params: Promise<{
     slug: string;
   }>;
 };
 
-export async function generateStaticParams() {
-  const { data } = await supabase
-    .from("live_rooms")
-    .select("slug");
-  return (data ?? []).map((room) => ({ slug: room.slug }));
-}
+
 
 export default async function LiveRoomPage({ params }: PageProps) {
   const { slug } = await params;
