@@ -32,7 +32,6 @@ export default async function TodayPage() {
         </h1>
 
         <div style={{ border: "1px solid rgba(255,255,255,0.08)", borderRadius: 28, overflow: "hidden", background: "rgba(255,255,255,0.02)" }}>
-
           <section style={{ padding: "28px 32px", borderBottom: "1px solid rgba(255,255,255,0.07)", background: "rgba(94,167,115,0.04)", borderLeft: "3px solid rgba(94,167,115,0.4)" }}>
             <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: "#5ea773", marginBottom: 14 }}>
               Scripture
@@ -59,9 +58,9 @@ export default async function TodayPage() {
               {data.prayer}
             </p>
           </section>
-
         </div>
-              <div style={{
+
+        <div style={{
           marginTop: 40,
           padding: 24,
           borderRadius: 24,
@@ -78,8 +77,5 @@ export default async function TodayPage() {
 
       </div>
     </main>
-  );
-}
-
   );
 }
