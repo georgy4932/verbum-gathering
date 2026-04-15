@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import LivekitRoomShell from "@/components/livekit-room-shell";
 import LiveRoomRealtime from "@/components/live-room-realtime";
 import HostSessionPanel from "@/components/host-session-panel";
+import ContinueFromHere from "@/components/continue-from-here";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,7 @@ export default async function LiveRoomPage({ params }: PageProps) {
     { data: prayers },
     { data: latestNote },
     { data: authUserResult },
+    { data: nextGatherings },
   ] = await Promise.all([
     supabase
       .from("live_rooms")
@@ -44,6 +46,14 @@ export default async function LiveRoomPage({ params }: PageProps) {
       .limit(1)
       .maybeSingle(),
     supabaseServer.auth.getUser(),
+    supabase
+      .from("live_rooms")
+      .select("slug, title, time_label, starts_at, is_live")
+      .neq("slug", slug)
+      .or("is_live.eq.true,starts_at.not.is.null")
+      .order("is_live", { ascending: false })
+      .order("starts_at", { ascending: true })
+      .limit(3),
   ]);
 
   if (roomError || !room) {
@@ -70,6 +80,9 @@ export default async function LiveRoomPage({ params }: PageProps) {
 
     canWriteSessionNotes = Boolean(moderator) || Boolean(hostProfile?.is_host);
   }
+
+  const nextGathering =
+    nextGatherings?.find((item) => item.slug !== slug) ?? null;
 
   return (
     <main style={{ padding: "4rem 1.25rem 5rem" }}>
@@ -181,6 +194,19 @@ export default async function LiveRoomPage({ params }: PageProps) {
                 <HostSessionPanel roomSlug={slug} />
               </details>
             ) : null}
+
+            <ContinueFromHere
+              currentRoomSlug={slug}
+              nextGathering={
+                nextGathering
+                  ? {
+                      slug: nextGathering.slug,
+                      title: nextGathering.title,
+                      timeLabel: nextGathering.time_label,
+                    }
+                  : null
+              }
+            />
           </div>
         </div>
       </div>
