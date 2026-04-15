@@ -18,8 +18,12 @@ export default async function FellowshipRoomPage({ params }: any) {
           {slug.replace(/-/g, " ")}
         </h1>
 
-        <p style={{ opacity: 0.7, marginBottom: 24 }}>
-          Speak with others. Encourage one another.
+        <p style={{ opacity: 0.7, marginBottom: 8 }}>
+          Share with care. Encourage one another in truth and grace.
+        </p>
+
+        <p style={{ opacity: 0.6, marginBottom: 24 }}>
+          People are here, sharing and listening.
         </p>
 
         <FellowshipRoomRealtime
