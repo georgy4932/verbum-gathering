@@ -26,7 +26,7 @@ export default function FellowshipRoomPresenceBadge({ roomSlug }: Props) {
     };
   }, [roomSlug]);
 
-  let label = "No one here yet";
+  let label = "No one is here yet";
 
   if (count === 1) {
     label = "1 here now";
