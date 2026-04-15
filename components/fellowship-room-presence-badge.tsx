@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/browser";
 
 type Props = {
@@ -9,16 +9,9 @@ type Props = {
 
 export default function FellowshipRoomPresenceBadge({ roomSlug }: Props) {
   const [count, setCount] = useState(0);
-  const presenceKey = useMemo(() => crypto.randomUUID(), []);
 
   useEffect(() => {
-    const channel = supabaseBrowser.channel(`fellowship-presence:${roomSlug}`, {
-      config: {
-        presence: {
-          key: presenceKey,
-        },
-      },
-    });
+    const channel = supabaseBrowser.channel(`fellowship-presence:${roomSlug}`);
 
     channel
       .on("presence", { event: "sync" }, () => {
@@ -26,19 +19,12 @@ export default function FellowshipRoomPresenceBadge({ roomSlug }: Props) {
         const total = Object.keys(state).length;
         setCount(total);
       })
-      .subscribe(async (status) => {
-        if (status === "SUBSCRIBED") {
-          await channel.track({
-            room_slug: roomSlug,
-            joined_at: new Date().toISOString(),
-          });
-        }
-      });
+      .subscribe();
 
     return () => {
       supabaseBrowser.removeChannel(channel);
     };
-  }, [roomSlug, presenceKey]);
+  }, [roomSlug]);
 
   let label = "No one here yet";
 
