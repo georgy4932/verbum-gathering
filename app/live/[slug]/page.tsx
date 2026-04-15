@@ -58,32 +58,56 @@ export default async function LiveRoomPage({ params }: PageProps) {
             {room.title}
           </h1>
 
+          <p style={{ opacity: 0.7, marginBottom: 20, fontSize: "1.05rem" }}>
+            Remain here a while.
+          </p>
+
           <p style={{ opacity: 0.82, lineHeight: 1.8, maxWidth: 760, marginBottom: 22 }}>
             {room.description}
           </p>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12, marginBottom: 24 }}>
-            <div style={{ padding: 16, borderRadius: 18, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
-              <p style={{ opacity: 0.58, margin: "0 0 6px", fontSize: "0.9rem" }}>Host</p>
+          <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 28, opacity: 0.85 }}>
+            <div style={{ minWidth: 160 }}>
+              <p style={{ opacity: 0.6, margin: "0 0 4px", fontSize: "0.85rem" }}>Led by</p>
               <p style={{ margin: 0 }}>{room.host}</p>
             </div>
-            <div style={{ padding: 16, borderRadius: 18, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
-              <p style={{ opacity: 0.58, margin: "0 0 6px", fontSize: "0.9rem" }}>Gathering type</p>
+            <div style={{ minWidth: 160 }}>
+              <p style={{ opacity: 0.6, margin: "0 0 4px", fontSize: "0.85rem" }}>Gathering</p>
               <p style={{ margin: 0, textTransform: "capitalize" }}>{room.kind}</p>
             </div>
           </div>
 
-          <div style={{ marginBottom: 24, padding: 18, borderRadius: 20, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
-            <p style={{ opacity: 0.58, margin: "0 0 6px", fontSize: "0.9rem" }}>Focus</p>
-            <p style={{ margin: 0, lineHeight: 1.7 }}>
-              "Be still, and know that I am God." — Psalm 46:10
+          <div
+            style={{
+              marginBottom: 36,
+              padding: "28px 24px",
+              borderRadius: 24,
+              background: "rgba(255,255,255,0.02)",
+              border: "1px solid rgba(255,255,255,0.05)",
+              textAlign: "center",
+            }}
+          >
+            <p style={{ opacity: 0.5, marginBottom: 10, fontSize: "0.85rem", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+              Focus
             </p>
+            <p style={{ fontSize: "1.2rem", lineHeight: 1.8, maxWidth: 520, margin: "0 auto" }}>
+              "Be still, and know that I am God."
+            </p>
+            <p style={{ opacity: 0.6, marginTop: 8 }}>Psalm 46:10</p>
           </div>
 
-          <LivekitRoomShell roomName={slug} />
+          <div
+            style={{
+              marginTop: 40,
+              paddingTop: 32,
+              borderTop: "1px solid rgba(255,255,255,0.06)",
+            }}
+          >
+            <LivekitRoomShell roomName={slug} />
 
-          <div style={{ marginTop: 28 }}>
-            <LiveRoomRealtime roomSlug={slug} initialPosts={prayers ?? []} />
+            <div style={{ marginTop: 32 }}>
+              <LiveRoomRealtime roomSlug={slug} initialPosts={prayers ?? []} />
+            </div>
           </div>
         </div>
       </div>
