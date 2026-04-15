@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 export const dynamic = "force-dynamic";
 
@@ -49,14 +50,26 @@ export default async function RoomsPage() {
                 {room.description}
               </p>
 
-              <button type="button" style={{
-                marginTop: 4, padding: "0.75rem 1rem",
-                borderRadius: 999, border: "1px solid rgba(255,255,255,0.12)",
-                background: "transparent", color: "rgba(255,255,255,0.75)",
-                fontSize: 13, fontWeight: 500, cursor: "pointer", width: "100%",
-              }}>
-                Open room
-              </button>
+              <Link
+                href={`/rooms/${room.slug}`}
+                style={{
+                  marginTop: 4,
+                  padding: "0.75rem 1rem",
+                  borderRadius: 999,
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  background: "transparent",
+                  color: "rgba(255,255,255,0.75)",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  cursor: "pointer",
+                  width: "100%",
+                  textDecoration: "none",
+                  textAlign: "center",
+                  display: "block",
+                }}
+              >
+                Enter space
+              </Link>
             </article>
           ))}
         </div>
