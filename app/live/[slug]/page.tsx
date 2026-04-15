@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import LivekitRoomShell from "@/components/livekit-room-shell";
 import LiveRoomRealtime from "@/components/live-room-realtime";
+import HostSessionPanel from "@/components/host-session-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -14,8 +16,14 @@ type PageProps = {
 
 export default async function LiveRoomPage({ params }: PageProps) {
   const { slug } = await params;
+  const supabaseServer = await createSupabaseServerClient();
 
-  const [{ data: room, error: roomError }, { data: prayers }] = await Promise.all([
+  const [
+    { data: room, error: roomError },
+    { data: prayers },
+    { data: latestNote },
+    { data: authUserResult },
+  ] = await Promise.all([
     supabase
       .from("live_rooms")
       .select("slug, title, description, status, time_label, host, kind")
@@ -28,10 +36,39 @@ export default async function LiveRoomPage({ params }: PageProps) {
       .eq("is_hidden", false)
       .order("created_at", { ascending: false })
       .limit(20),
+    supabase
+      .from("room_session_notes")
+      .select("summary, key_scripture, closing_prayer, created_at")
+      .eq("room_slug", slug)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabaseServer.auth.getUser(),
   ]);
 
   if (roomError || !room) {
     notFound();
+  }
+
+  const user = authUserResult.user;
+  let canWriteSessionNotes = false;
+
+  if (user) {
+    const [{ data: moderator }, { data: hostProfile }] = await Promise.all([
+      supabaseServer
+        .from("room_moderators")
+        .select("room_slug")
+        .eq("room_slug", slug)
+        .eq("user_id", user.id)
+        .maybeSingle(),
+      supabaseServer
+        .from("host_profiles")
+        .select("is_host")
+        .eq("id", user.id)
+        .maybeSingle(),
+    ]);
+
+    canWriteSessionNotes = Boolean(moderator) || Boolean(hostProfile?.is_host);
   }
 
   return (
@@ -58,12 +95,12 @@ export default async function LiveRoomPage({ params }: PageProps) {
             {room.title}
           </h1>
 
-          <p style={{ opacity: 0.7, marginBottom: 20, fontSize: "1.05rem" }}>
-            Remain here a while.
+          <p style={{ opacity: 0.82, lineHeight: 1.8, maxWidth: 760, marginBottom: 12 }}>
+            {room.description}
           </p>
 
-          <p style={{ opacity: 0.82, lineHeight: 1.8, maxWidth: 760, marginBottom: 22 }}>
-            {room.description}
+          <p style={{ opacity: 0.7, marginBottom: 20, fontSize: "1.05rem" }}>
+            Remain here a while.
           </p>
 
           <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 28, opacity: 0.85 }}>
@@ -96,6 +133,33 @@ export default async function LiveRoomPage({ params }: PageProps) {
             <p style={{ opacity: 0.6, marginTop: 8 }}>Psalm 46:10</p>
           </div>
 
+          {latestNote ? (
+            <div
+              style={{
+                marginBottom: 36,
+                padding: 24,
+                borderRadius: 24,
+                border: "1px solid rgba(255,255,255,0.08)",
+                background: "rgba(255,255,255,0.03)",
+              }}
+            >
+              <p style={{ opacity: 0.58, margin: "0 0 8px", letterSpacing: "0.08em", textTransform: "uppercase", fontSize: "0.82rem" }}>
+                From a recent gathering
+              </p>
+              <p style={{ lineHeight: 1.8, marginTop: 0 }}>{latestNote.summary}</p>
+              {latestNote.key_scripture ? (
+                <p style={{ opacity: 0.78, marginBottom: 8 }}>
+                  <strong>Scripture:</strong> {latestNote.key_scripture}
+                </p>
+              ) : null}
+              {latestNote.closing_prayer ? (
+                <p style={{ opacity: 0.78, marginBottom: 0 }}>
+                  <strong>Closing prayer:</strong> {latestNote.closing_prayer}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
           <div
             style={{
               marginTop: 40,
@@ -108,6 +172,15 @@ export default async function LiveRoomPage({ params }: PageProps) {
             <div style={{ marginTop: 32 }}>
               <LiveRoomRealtime roomSlug={slug} initialPosts={prayers ?? []} />
             </div>
+
+            {canWriteSessionNotes ? (
+              <details style={{ marginTop: 28 }}>
+                <summary style={{ cursor: "pointer", opacity: 0.75 }}>
+                  Host notes
+                </summary>
+                <HostSessionPanel roomSlug={slug} />
+              </details>
+            ) : null}
           </div>
         </div>
       </div>
