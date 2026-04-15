@@ -16,7 +16,7 @@ export default function PrayerForm({ roomSlug }: PrayerFormProps) {
     setNotice("");
 
     if (!message.trim()) {
-      setNotice("Please write a prayer message.");
+      setNotice("Please write a prayer.");
       return;
     }
 
@@ -32,12 +32,12 @@ export default function PrayerForm({ roomSlug }: PrayerFormProps) {
     setSending(false);
 
     if (!response.ok) {
-      setNotice(data.error || "Unable to send prayer right now.");
+      setNotice(data.error || "Unable to share right now.");
       return;
     }
 
     setMessage("");
-    setNotice("Prayer shared.");
+    setNotice("Shared quietly with others.");
   }
 
   return (
@@ -46,25 +46,30 @@ export default function PrayerForm({ roomSlug }: PrayerFormProps) {
       style={{
         display: "grid",
         gap: 12,
-        padding: 18,
+        padding: 20,
         borderRadius: 20,
         background: "rgba(255,255,255,0.03)",
         border: "1px solid rgba(255,255,255,0.08)",
       }}
     >
-      <h3 style={{ margin: 0 }}>Share a prayer</h3>
+      <div>
+        <h3 style={{ margin: "0 0 6px" }}>Share a prayer</h3>
+        <p style={{ opacity: 0.68, margin: 0, lineHeight: 1.65 }}>
+          Shared quietly with others in this gathering.
+        </p>
+      </div>
 
       <textarea
         value={message}
         onChange={(e) => setMessage(e.target.value)}
-        placeholder="Write your prayer request or praise..."
+        placeholder="Write your prayer or thanksgiving..."
         rows={5}
         style={{
-          borderRadius: 12,
+          borderRadius: 14,
           border: "1px solid rgba(255,255,255,0.12)",
           background: "rgba(255,255,255,0.02)",
           color: "inherit",
-          padding: "0.9rem",
+          padding: "0.95rem",
           resize: "vertical",
         }}
       />
@@ -74,17 +79,19 @@ export default function PrayerForm({ roomSlug }: PrayerFormProps) {
         disabled={sending}
         style={{
           minHeight: 44,
+          padding: "0 1rem",
           borderRadius: 999,
           border: "1px solid rgba(255,255,255,0.12)",
-          background: "rgba(255,255,255,0.06)",
+          background: "rgba(255,255,255,0.05)",
           color: "inherit",
           cursor: "pointer",
+          justifySelf: "start",
         }}
       >
-        {sending ? "Sharing..." : "Share prayer"}
+        {sending ? "Sharing..." : "Share quietly"}
       </button>
 
-      {notice ? <p style={{ opacity: 0.75, margin: 0 }}>{notice}</p> : null}
+      {notice ? <p style={{ opacity: 0.74, margin: 0 }}>{notice}</p> : null}
     </form>
   );
 }
