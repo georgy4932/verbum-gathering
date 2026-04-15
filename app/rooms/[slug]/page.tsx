@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import FellowshipRoomRealtime from "@/components/fellowship-room-realtime";
+import FellowshipRoomPresence from "@/components/fellowship-room-presence";
 
 export default async function FellowshipRoomPage({ params }: any) {
   const { slug } = await params;
@@ -18,13 +19,11 @@ export default async function FellowshipRoomPage({ params }: any) {
           {slug.replace(/-/g, " ")}
         </h1>
 
-        <p style={{ opacity: 0.7, marginBottom: 8 }}>
+        <p style={{ opacity: 0.7, marginBottom: 12 }}>
           Share with care. Encourage one another in truth and grace.
         </p>
 
-        <p style={{ opacity: 0.6, marginBottom: 24 }}>
-          People are here, sharing and listening.
-        </p>
+        <FellowshipRoomPresence roomSlug={slug} />
 
         <FellowshipRoomRealtime
           roomSlug={slug}
