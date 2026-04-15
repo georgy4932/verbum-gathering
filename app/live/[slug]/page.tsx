@@ -6,6 +6,8 @@ import LivekitRoomShell from "@/components/livekit-room-shell";
 import LiveRoomRealtime from "@/components/live-room-realtime";
 import HostSessionPanel from "@/components/host-session-panel";
 import ContinueFromHere from "@/components/continue-from-here";
+import LiveGuidanceCard from "@/components/live-guidance-card";
+import HostGuidancePanel from "@/components/host-guidance-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +27,7 @@ export default async function LiveRoomPage({ params }: PageProps) {
     { data: latestNote },
     { data: authUserResult },
     { data: nextGatherings },
+    { data: guidance },
   ] = await Promise.all([
     supabase
       .from("live_rooms")
@@ -54,6 +57,11 @@ export default async function LiveRoomPage({ params }: PageProps) {
       .order("is_live", { ascending: false })
       .order("starts_at", { ascending: true })
       .limit(3),
+    supabase
+      .from("room_guidance")
+      .select("focus_text, pinned_scripture, pinned_prayer, closing_text, is_closing")
+      .eq("room_slug", slug)
+      .maybeSingle(),
   ]);
 
   if (roomError || !room) {
@@ -104,7 +112,7 @@ export default async function LiveRoomPage({ params }: PageProps) {
             {room.time_label}
           </p>
 
-          <h1 style={{ fontSize: "clamp(2.2rem, 4vw, 3.6rem)", margin: "0 0 14px", lineHeight: 1.08 }}>
+          <h1 style={{ fontSize: "clamp(2.2rem, 4vw, 3.6rem)", margin: "0 0 14px", lineHeight: 1.08, letterSpacing: "-0.02em" }}>
             {room.title}
           </h1>
 
@@ -118,11 +126,11 @@ export default async function LiveRoomPage({ params }: PageProps) {
 
           <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 28, opacity: 0.85 }}>
             <div style={{ minWidth: 160 }}>
-              <p style={{ opacity: 0.6, margin: "0 0 4px", fontSize: "0.85rem" }}>Led by</p>
+              <p style={{ opacity: 0.6, margin: "0 0 4px", fontSize: "0.85rem", letterSpacing: "0.1em" }}>Led by</p>
               <p style={{ margin: 0 }}>{room.host}</p>
             </div>
             <div style={{ minWidth: 160 }}>
-              <p style={{ opacity: 0.6, margin: "0 0 4px", fontSize: "0.85rem" }}>Gathering</p>
+              <p style={{ opacity: 0.6, margin: "0 0 4px", fontSize: "0.85rem", letterSpacing: "0.1em" }}>Gathering</p>
               <p style={{ margin: 0, textTransform: "capitalize" }}>{room.kind}</p>
             </div>
           </div>
@@ -137,7 +145,7 @@ export default async function LiveRoomPage({ params }: PageProps) {
               textAlign: "center",
             }}
           >
-            <p style={{ opacity: 0.5, marginBottom: 10, fontSize: "0.85rem", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+            <p style={{ opacity: 0.5, marginBottom: 10, fontSize: "0.85rem", letterSpacing: "0.1em", textTransform: "uppercase" }}>
               Focus
             </p>
             <p style={{ fontSize: "1.2rem", lineHeight: 1.8, maxWidth: 520, margin: "0 auto" }}>
@@ -156,7 +164,7 @@ export default async function LiveRoomPage({ params }: PageProps) {
                 background: "rgba(255,255,255,0.03)",
               }}
             >
-              <p style={{ opacity: 0.58, margin: "0 0 8px", letterSpacing: "0.08em", textTransform: "uppercase", fontSize: "0.82rem" }}>
+              <p style={{ opacity: 0.58, margin: "0 0 8px", letterSpacing: "0.1em", textTransform: "uppercase", fontSize: "0.82rem" }}>
                 From a recent gathering
               </p>
               <p style={{ lineHeight: 1.8, marginTop: 0 }}>{latestNote.summary}</p>
@@ -180,6 +188,8 @@ export default async function LiveRoomPage({ params }: PageProps) {
               borderTop: "1px solid rgba(255,255,255,0.06)",
             }}
           >
+            <LiveGuidanceCard roomSlug={slug} initialGuidance={guidance} />
+
             <LivekitRoomShell roomName={slug} />
 
             <div style={{ marginTop: 32 }}>
@@ -195,7 +205,11 @@ export default async function LiveRoomPage({ params }: PageProps) {
               </details>
             ) : null}
 
-                      <ContinueFromHere
+            {canWriteSessionNotes ? (
+              <HostGuidancePanel roomSlug={slug} initialGuidance={guidance} />
+            ) : null}
+
+            <ContinueFromHere
               currentRoomSlug={slug}
               nextGathering={
                 nextGathering
@@ -215,6 +229,5 @@ export default async function LiveRoomPage({ params }: PageProps) {
         </div>
       </div>
     </main>
-
   );
 }
