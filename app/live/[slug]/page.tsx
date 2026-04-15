@@ -195,7 +195,7 @@ export default async function LiveRoomPage({ params }: PageProps) {
               </details>
             ) : null}
 
-            <ContinueFromHere
+                      <ContinueFromHere
               currentRoomSlug={slug}
               nextGathering={
                 nextGathering
@@ -207,9 +207,14 @@ export default async function LiveRoomPage({ params }: PageProps) {
                   : null
               }
             />
+
+            <p style={{ textAlign: "center", opacity: 0.5, marginTop: 40, fontSize: "0.9rem" }}>
+              Go in peace.
+            </p>
           </div>
         </div>
       </div>
     </main>
+
   );
 }
