@@ -15,7 +15,10 @@ type Props = {
   initialMessages: Message[];
 };
 
-export default function FellowshipRoomRealtime({ roomSlug, initialMessages }: Props) {
+export default function FellowshipRoomRealtime({
+  roomSlug,
+  initialMessages,
+}: Props) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
@@ -32,7 +35,13 @@ export default function FellowshipRoomRealtime({ roomSlug, initialMessages }: Pr
           filter: `room_slug=eq.${roomSlug}`,
         },
         (payload) => {
-          setMessages((prev) => [payload.new as Message, ...prev]);
+          const incoming = payload.new as Message;
+
+          setMessages((prev) => {
+            const exists = prev.some((msg) => msg.id === incoming.id);
+            if (exists) return prev;
+            return [incoming, ...prev];
+          });
         }
       )
       .subscribe();
@@ -44,53 +53,91 @@ export default function FellowshipRoomRealtime({ roomSlug, initialMessages }: Pr
 
   async function sendMessage() {
     if (!message.trim() || sending) return;
+
+    const trimmed = message.trim();
+    if (trimmed.length > 280) return;
+
     setSending(true);
 
-    const { data: { user } } = await supabaseBrowser.auth.getUser();
-    if (!user) { setSending(false); return; }
+    try {
+      const {
+        data: { user },
+      } = await supabaseBrowser.auth.getUser();
 
-    const { data: profile } = await supabaseBrowser
-      .from("profiles")
-      .select("display_name")
-      .eq("id", user.id)
-      .single();
+      if (!user) {
+        setSending(false);
+        return;
+      }
 
-    await supabaseBrowser.from("fellowship_messages").insert({
-      room_slug: roomSlug,
-      user_id: user.id,
-      author_name: profile?.display_name || user.email || "Someone",
-      message: message.trim(),
-    });
+      const { data: profile } = await supabaseBrowser
+        .from("profiles")
+        .select("display_name")
+        .eq("id", user.id)
+        .single();
 
-    setMessage("");
-    setSending(false);
+      const { error } = await supabaseBrowser.from("fellowship_messages").insert({
+        room_slug: roomSlug,
+        user_id: user.id,
+        author_name: profile?.display_name || user.email || "Someone",
+        message: trimmed,
+      });
+
+      if (!error) {
+        setMessage("");
+      }
+    } finally {
+      setSending(false);
+    }
   }
 
   return (
     <div style={{ display: "grid", gap: 20 }}>
       <div>
-        <p style={{ opacity: 0.55, marginBottom: 14, fontSize: "0.85rem", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+        <p
+          style={{
+            opacity: 0.55,
+            marginBottom: 14,
+            fontSize: "0.85rem",
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+          }}
+        >
           Shared in this space
         </p>
 
-        <div style={{ display: "grid", gap: 14 }}>
+        <div style={{ display: "grid", gap: 18 }}>
           {messages.length === 0 ? (
-            <p style={{ opacity: 0.6 }}>Nothing shared yet. Be the first to encourage.</p>
+            <p style={{ opacity: 0.6 }}>
+              Nothing shared yet. Be the first to encourage.
+            </p>
           ) : (
             messages.map((msg) => (
               <div
                 key={msg.id}
                 style={{
-                  padding: 16,
+                  padding: "18px 18px 16px",
                   borderRadius: 18,
                   border: "1px solid rgba(255,255,255,0.07)",
                   background: "rgba(255,255,255,0.02)",
                 }}
               >
-                <p style={{ fontWeight: 600, margin: "0 0 6px" }}>{msg.author_name}</p>
-                <p style={{ margin: "0 0 8px", lineHeight: 1.7, opacity: 0.88 }}>{msg.message}</p>
+                <p style={{ fontWeight: 600, margin: "0 0 6px" }}>
+                  {msg.author_name}
+                </p>
+                <p
+                  style={{
+                    margin: "0 0 8px",
+                    lineHeight: 1.7,
+                    opacity: 0.88,
+                  }}
+                >
+                  {msg.message}
+                </p>
                 <p style={{ opacity: 0.45, margin: 0, fontSize: "0.8rem" }}>
-                  {new Date(msg.created_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}
+                  {new Date(msg.created_at).toLocaleString("en-GB", {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  })}
                 </p>
               </div>
             ))
@@ -108,10 +155,21 @@ export default function FellowshipRoomRealtime({ roomSlug, initialMessages }: Pr
           background: "rgba(255,255,255,0.02)",
         }}
       >
+        <p
+          style={{
+            opacity: 0.55,
+            fontSize: "0.85rem",
+            margin: 0,
+            lineHeight: 1.6,
+          }}
+        >
+          Speak with care. Let your words build others up.
+        </p>
+
         <textarea
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder="Share something with this space..."
+          placeholder="Share what is on your heart..."
           rows={4}
           style={{
             borderRadius: 14,
@@ -122,6 +180,7 @@ export default function FellowshipRoomRealtime({ roomSlug, initialMessages }: Pr
             resize: "vertical",
           }}
         />
+
         <button
           type="button"
           onClick={sendMessage}
