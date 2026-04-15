@@ -90,7 +90,7 @@ export default function FellowshipRoomRealtime({
   }
 
   return (
-    <div style={{ display: "grid", gap: 20, maxWidth: 680 }}>
+    <div style={{ display: "grid", gap: 20, maxWidth: 680, scrollBehavior: "smooth" }}>
       <div>
         <p
           style={{
