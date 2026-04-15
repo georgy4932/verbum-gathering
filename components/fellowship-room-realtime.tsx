@@ -36,7 +36,6 @@ export default function FellowshipRoomRealtime({
         },
         (payload) => {
           const incoming = payload.new as Message;
-
           setMessages((prev) => {
             const exists = prev.some((msg) => msg.id === incoming.id);
             if (exists) return prev;
@@ -91,7 +90,7 @@ export default function FellowshipRoomRealtime({
   }
 
   return (
-    <div style={{ display: "grid", gap: 20 }}>
+    <div style={{ display: "grid", gap: 20, maxWidth: 680 }}>
       <div>
         <p
           style={{
@@ -133,7 +132,7 @@ export default function FellowshipRoomRealtime({
                 >
                   {msg.message}
                 </p>
-                <p style={{ opacity: 0.45, margin: 0, fontSize: "0.8rem" }}>
+                <p style={{ opacity: 0.35, margin: 0, fontSize: "0.8rem" }}>
                   {new Date(msg.created_at).toLocaleString("en-GB", {
                     dateStyle: "medium",
                     timeStyle: "short",
