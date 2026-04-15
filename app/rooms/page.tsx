@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import FellowshipRoomPresenceBadge from "@/components/fellowship-room-presence-badge";
+
 export const dynamic = "force-dynamic";
 
 export default async function RoomsPage() {
   const { data, error } = await supabase
     .from("fellowship_rooms")
-    .select("slug, name, description, members_label")
+    .select("slug, name, description")
     .order("sort_order", { ascending: true });
 
   const rooms = data ?? [];
@@ -39,10 +41,7 @@ export default async function RoomsPage() {
                 display: "flex", flexDirection: "column", gap: 12,
               }}
             >
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#86efac", fontWeight: 600 }}>
-                <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#86efac", display: "inline-block" }} />
-                {room.members_label}
-              </div>
+              <FellowshipRoomPresenceBadge roomSlug={room.slug} />
 
               <h2 style={{ fontSize: "1.3rem", margin: 0, lineHeight: 1.2 }}>{room.name}</h2>
 
