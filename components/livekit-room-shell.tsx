@@ -17,7 +17,12 @@ type LivekitRoomShellProps = {
 
 function RoomStatus() {
   const state = useConnectionState();
-  return <p style={{ opacity: 0.75 }}>Connection: {state}</p>;
+
+  return (
+    <p style={{ opacity: 0.68, margin: "0 0 14px", fontSize: "0.95rem" }}>
+      {state === "connected" ? "You are present in the gathering." : `Connection: ${state}`}
+    </p>
+  );
 }
 
 function HostControls() {
@@ -31,7 +36,7 @@ function HostControls() {
   }
 
   return (
-    <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 16 }}>
+    <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
       <button
         type="button"
         onClick={toggleMic}
@@ -40,12 +45,12 @@ function HostControls() {
           padding: "0 1rem",
           borderRadius: 999,
           border: "1px solid rgba(255,255,255,0.12)",
-          background: "rgba(255,255,255,0.06)",
+          background: "rgba(255,255,255,0.04)",
           color: "inherit",
           cursor: "pointer",
         }}
       >
-        {micEnabled ? "Mute" : "Unmute microphone"}
+        {micEnabled ? "Mute microphone" : "Open microphone"}
       </button>
     </div>
   );
@@ -68,22 +73,22 @@ function ParticipantList() {
   return (
     <div
       style={{
-        marginTop: 20,
+        marginTop: 22,
         padding: 18,
         borderRadius: 20,
         border: "1px solid rgba(255,255,255,0.08)",
-        background: "rgba(255,255,255,0.03)",
+        background: "rgba(255,255,255,0.02)",
       }}
     >
-      <h3 style={{ marginTop: 0 }}>Present</h3>
+      <p style={{ opacity: 0.62, margin: "0 0 10px", textTransform: "uppercase", letterSpacing: "0.08em", fontSize: "0.78rem" }}>
+        Present
+      </p>
       {names.length === 0 ? (
-        <p style={{ opacity: 0.75, marginBottom: 0 }}>No one connected yet.</p>
+        <p style={{ opacity: 0.72, margin: 0 }}>No one has entered yet.</p>
       ) : (
         <div style={{ display: "grid", gap: 8 }}>
           {names.map((name) => (
-            <div key={name} style={{ opacity: 0.9 }}>
-              {name}
-            </div>
+            <div key={name} style={{ opacity: 0.9 }}>{name}</div>
           ))}
         </div>
       )}
@@ -112,7 +117,7 @@ export default function LivekitRoomShell({ roomName }: LivekitRoomShellProps) {
     setJoining(false);
 
     if (!response.ok || !data.token) {
-      setError(data.error || "Unable to enter gathering");
+      setError(data.error || "Unable to enter the gathering");
       return;
     }
 
@@ -123,46 +128,57 @@ export default function LivekitRoomShell({ roomName }: LivekitRoomShellProps) {
     return (
       <div
         style={{
-          marginTop: 24,
-          padding: 28,
-          borderRadius: 24,
+          marginTop: 28,
+          padding: 32,
+          borderRadius: 28,
           border: "1px solid rgba(255,255,255,0.08)",
-          background: "rgba(255,255,255,0.03)",
+          background: "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%)",
           textAlign: "center",
         }}
       >
-        <p style={{ opacity: 0.6, marginBottom: 12 }}>
-          You are entering a live gathering
+        <p style={{ opacity: 0.58, marginBottom: 12, letterSpacing: "0.08em", textTransform: "uppercase", fontSize: "0.82rem" }}>
+          Live gathering
         </p>
-        <h2 style={{ marginBottom: 16 }}>Take a moment. Be still.</h2>
-        <p style={{ opacity: 0.75, maxWidth: 420, margin: "0 auto 24px", lineHeight: 1.6 }}>
-          Others are already here — praying, listening, waiting.
+
+        <h2 style={{ margin: "0 0 14px", fontSize: "clamp(1.6rem, 3vw, 2.3rem)" }}>
+          Take a moment. Be still.
+        </h2>
+
+        <p style={{ opacity: 0.78, maxWidth: 460, margin: "0 auto 22px", lineHeight: 1.75 }}>
+          Others may already be here — praying, listening, waiting before God.
         </p>
+
+        <div style={{ maxWidth: 460, margin: "0 auto 24px", padding: 16, borderRadius: 18, border: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)" }}>
+          <p style={{ opacity: 0.6, margin: "0 0 6px", fontSize: "0.92rem" }}>Enter gently</p>
+          <p style={{ opacity: 0.82, margin: 0, lineHeight: 1.65 }}>
+            This space is for prayer, Scripture, and quiet attention.
+          </p>
+        </div>
+
         <button
           type="button"
           onClick={joinRoom}
           disabled={!serverUrl || joining}
           style={{
-            minHeight: 44,
-            padding: "0 2rem",
+            minHeight: 46,
+            padding: "0 1.2rem",
             borderRadius: 999,
             border: "1px solid rgba(255,255,255,0.12)",
-            background: "rgba(255,255,255,0.06)",
+            background: "rgba(255,255,255,0.05)",
             color: "inherit",
             cursor: "pointer",
-            fontSize: "1rem",
           }}
         >
-          {joining ? "Entering..." : "Enter quietly"}
+          {joining ? "Entering..." : "Enter gathering"}
         </button>
 
-        {error ? <p style={{ color: "#fca5a5", margin: "16px 0 0" }}>{error}</p> : null}
+        {error ? <p style={{ color: "#fca5a5", marginTop: 14, marginBottom: 0 }}>{error}</p> : null}
       </div>
     );
   }
 
   return (
-    <div style={{ marginTop: 24 }}>
+    <div style={{ marginTop: 28 }}>
       <LiveKitRoom
         token={token}
         serverUrl={serverUrl}
@@ -172,30 +188,18 @@ export default function LivekitRoomShell({ roomName }: LivekitRoomShellProps) {
       >
         <div
           style={{
-            padding: 24,
-            borderRadius: 24,
+            padding: 26,
+            borderRadius: 28,
             border: "1px solid rgba(255,255,255,0.08)",
-            background: "rgba(255,255,255,0.03)",
+            background: "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%)",
           }}
         >
-          <p style={{ opacity: 0.7, marginBottom: 12 }}>
-            You are here with others.
+          <p style={{ opacity: 0.6, margin: "0 0 10px", letterSpacing: "0.08em", textTransform: "uppercase", fontSize: "0.8rem" }}>
+            Live audio
           </p>
-          <h2 style={{ marginTop: 0 }}>Live gathering</h2>
-          <div
-            style={{
-              marginTop: 20,
-              padding: 16,
-              borderRadius: 16,
-              background: "rgba(255,255,255,0.02)",
-              border: "1px solid rgba(255,255,255,0.06)",
-            }}
-          >
-            <p style={{ opacity: 0.6, marginBottom: 6 }}>Focus</p>
-            <p style={{ margin: 0 }}>
-              "Be still, and know that I am God." — Psalm 46:10
-            </p>
-          </div>
+
+          <h2 style={{ marginTop: 0, marginBottom: 12 }}>Remain here a while.</h2>
+
           <RoomStatus />
           <RoomAudioRenderer />
           <HostControls />
