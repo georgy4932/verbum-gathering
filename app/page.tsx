@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { getCurrentUserProfile } from "@/lib/profile";
 import HomeLiveNow from "@/components/home-live-now";
+import FellowshipRoomPresenceBadge from "@/components/fellowship-room-presence-badge";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,7 @@ export default async function HomePage() {
       .single(),
     supabase
       .from("fellowship_rooms")
-      .select("slug, name, members_label")
+      .select("slug, name")
       .order("sort_order")
       .limit(3),
   ]);
@@ -90,9 +91,9 @@ export default async function HomePage() {
             </h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {(fellowshipRooms ?? []).map((r) => (
-                <div key={r.slug} style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                <div key={r.slug} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13 }}>
                   <span style={{ opacity: 0.8 }}>{r.name}</span>
-                  <span style={{ color: "#86efac", fontSize: 11, fontWeight: 600 }}>{r.members_label}</span>
+                  <FellowshipRoomPresenceBadge roomSlug={r.slug} />
                 </div>
               ))}
             </div>
