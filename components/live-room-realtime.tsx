@@ -22,8 +22,10 @@ export default function LiveRoomRealtime({ roomSlug, initialPosts }: LiveRoomRea
       <RoomPresence roomSlug={roomSlug} />
       <PrayerForm roomSlug={roomSlug} />
       <div>
-               <h2 style={{ marginBottom: 16 }}>Shared prayers</h2>
-
+        <h3 style={{ marginBottom: 4 }}>Shared prayers</h3>
+        <p style={{ opacity: 0.6, marginBottom: 16 }}>
+          Offered quietly within this gathering
+        </p>
         <PrayerWall roomSlug={roomSlug} initialPosts={initialPosts} />
       </div>
     </div>
