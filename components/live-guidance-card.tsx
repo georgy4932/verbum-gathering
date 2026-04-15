@@ -46,18 +46,24 @@ export default function LiveGuidanceCard({
 
   if (!hasContent) return null;
 
+  const isClosing = Boolean(guidance.is_closing);
+
   return (
     <div
       style={{
         marginBottom: 28,
         padding: 24,
         borderRadius: 24,
-        border: "1px solid rgba(255,255,255,0.06)",
-        background: "rgba(255,255,255,0.02)",
+        border: isClosing
+          ? "1px solid rgba(255,255,255,0.1)"
+          : "1px solid rgba(255,255,255,0.04)",
+        background: isClosing
+          ? "rgba(255,255,255,0.04)"
+          : "rgba(255,255,255,0.012)",
       }}
     >
       <p style={{ opacity: 0.55, margin: "0 0 10px", letterSpacing: "0.08em", textTransform: "uppercase", fontSize: "0.82rem" }}>
-        {guidance.is_closing ? "Closing moment" : "Held in this gathering"}
+        {isClosing ? "Closing moment" : "Held in this gathering"}
       </p>
 
       {guidance.focus_text ? (
@@ -86,6 +92,12 @@ export default function LiveGuidanceCard({
           <p style={{ opacity: 0.58, margin: "0 0 4px", fontSize: "0.9rem" }}>Blessing</p>
           <p style={{ margin: 0, lineHeight: 1.7 }}>{guidance.closing_text}</p>
         </div>
+      ) : null}
+
+      {isClosing ? (
+        <p style={{ textAlign: "center", opacity: 0.6, marginTop: 20, fontStyle: "italic" }}>
+          Take a moment of silence.
+        </p>
       ) : null}
     </div>
   );
