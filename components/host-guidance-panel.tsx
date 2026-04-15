@@ -73,9 +73,10 @@ export default function HostGuidancePanel({
 
   return (
     <details style={{ marginTop: 28 }}>
-      <summary style={{ cursor: "pointer", opacity: 0.76 }}>
-        Host guidance
+           <summary style={{ cursor: "pointer", opacity: 0.76 }}>
+        Lead this gathering
       </summary>
+
 
       <div
         style={{
