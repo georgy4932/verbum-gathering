@@ -43,13 +43,24 @@ export default async function HomePage() {
             Not to scroll — but to remain.
           </p>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-            <Link href="/live" style={{ display: "inline-flex", alignItems: "center", padding: "13px 26px", borderRadius: 9, background: "#c8a96a", color: "#0f0d0a", fontWeight: 600, fontSize: 13 }}>
+            <Link href="/gathering" style={{ display: "inline-flex", alignItems: "center", padding: "13px 26px", borderRadius: 9, background: "#c8a96a", color: "#0f0d0a", fontWeight: 600, fontSize: 13 }}>
               Enter gathering
             </Link>
             <Link href="/today" style={{ display: "inline-flex", alignItems: "center", padding: "13px 26px", borderRadius: 9, border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.75)", fontSize: 13 }}>
               Today's Devotion
             </Link>
           </div>
+
+          {!user ? (
+            <div style={{ marginTop: 32, padding: "18px 22px", borderRadius: 20, border: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)", maxWidth: 560 }}>
+              <p style={{ margin: "0 0 10px", opacity: 0.82, lineHeight: 1.7 }}>
+                To share prayers, enter live gatherings, and participate in fellowship spaces, you'll need to sign in.
+              </p>
+              <Link href="/sign-in" style={{ color: "#c8a96a", fontSize: 13, fontWeight: 500 }}>
+                Sign in quietly →
+              </Link>
+            </div>
+          ) : null}
         </div>
       </section>
 
