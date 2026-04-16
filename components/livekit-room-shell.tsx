@@ -94,8 +94,29 @@ export default function LivekitRoomShell({ roomName }: LivekitRoomShellProps) {
 
   const serverUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL;
 
-  async function joinRoom() {
+    async function joinRoom() {
     setJoining(true);
     setError("");
 
-    const response = await fetch("/​​​​​​​​​​​​​​​​
+    const response = await fetch("/api/livekit-token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ roomName }),
+    });
+
+    const data = await response.json();
+    setJoining(false);
+
+    if (!response.ok || !data.token) {
+      setError(data.error || "Unable to enter the gathering");
+      return;
+    }
+
+    setToken(data.token);
+  }
+
+  function leaveRoom() {
+    setToken("");
+    setError("");
+  }
+
