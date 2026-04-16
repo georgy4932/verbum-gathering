@@ -35,4 +35,67 @@ function HostControls() {
   }
 
   return (
-    <div style={{ display: "flex", gap:
+    <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
+      <button
+        type="button"
+        onClick={toggleMic}
+        style={{
+          minHeight: 44,
+          padding: "0 1rem",
+          borderRadius: 999,
+          border: "1px solid rgba(255,255,255,0.12)",
+          background: "rgba(255,255,255,0.04)",
+          color: "inherit",
+          cursor: "pointer",
+        }}
+      >
+        {micEnabled ? "Mute microphone" : "Open microphone"}
+      </button>
+    </div>
+  );
+}
+
+function ParticipantList() {
+  const tracks = useTracks([
+    { source: Track.Source.Camera, withPlaceholder: true },
+    { source: Track.Source.Microphone, withPlaceholder: false },
+  ]);
+
+  const names = Array.from(
+    new Set(
+      tracks
+        .map((item) => item.participant?.name || item.participant?.identity)
+        .filter(Boolean)
+    )
+  );
+
+  return (
+    <div style={{ marginTop: 22, padding: 18, borderRadius: 20, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.02)" }}>
+      <p style={{ opacity: 0.62, margin: "0 0 10px", textTransform: "uppercase", letterSpacing: "0.08em", fontSize: "0.78rem" }}>
+        Present
+      </p>
+      {names.length === 0 ? (
+        <p style={{ opacity: 0.72, margin: 0 }}>No one has entered yet.</p>
+      ) : (
+        <div style={{ display: "grid", gap: 8 }}>
+          {names.map((name) => (
+            <div key={name} style={{ opacity: 0.9 }}>{name}</div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function LivekitRoomShell({ roomName }: LivekitRoomShellProps) {
+  const [token, setToken] = useState("");
+  const [joining, setJoining] = useState(false);
+  const [error, setError] = useState("");
+
+  const serverUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL;
+
+  async function joinRoom() {
+    setJoining(true);
+    setError("");
+
+    const response = await fetch("/​​​​​​​​​​​​​​​​
