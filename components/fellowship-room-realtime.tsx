@@ -22,6 +22,7 @@ export default function FellowshipRoomRealtime({
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const [notice, setNotice] = useState("");
 
   useEffect(() => {
     const channel = supabaseBrowser
@@ -36,6 +37,7 @@ export default function FellowshipRoomRealtime({
         },
         (payload) => {
           const incoming = payload.new as Message;
+
           setMessages((prev) => {
             const exists = prev.some((msg) => msg.id === incoming.id);
             if (exists) return prev;
@@ -54,9 +56,13 @@ export default function FellowshipRoomRealtime({
     if (!message.trim() || sending) return;
 
     const trimmed = message.trim();
-    if (trimmed.length > 280) return;
+    if (trimmed.length > 280) {
+      setNotice("Keep it brief and thoughtful.");
+      return;
+    }
 
     setSending(true);
+    setNotice("");
 
     try {
       const {
@@ -64,7 +70,7 @@ export default function FellowshipRoomRealtime({
       } = await supabaseBrowser.auth.getUser();
 
       if (!user) {
-        setSending(false);
+        setNotice("Please sign in before sharing.");
         return;
       }
 
@@ -81,74 +87,112 @@ export default function FellowshipRoomRealtime({
         message: trimmed,
       });
 
-      if (!error) {
-        setMessage("");
+      if (error) {
+        setNotice("Unable to share right now.");
+        return;
       }
+
+      setMessage("");
+      setNotice("Shared quietly with this space.");
     } finally {
       setSending(false);
     }
   }
 
   return (
-    <div style={{ display: "grid", gap: 20, maxWidth: 680, scrollBehavior: "smooth" }}>
-      <div>
+    <div style={{ display: "grid", gap: 24 }}>
+      <section>
         <p
           style={{
-            opacity: 0.55,
+            opacity: 0.5,
             marginBottom: 14,
-            fontSize: "0.85rem",
-            letterSpacing: "0.08em",
+            fontSize: 12,
+            letterSpacing: "0.1em",
             textTransform: "uppercase",
           }}
         >
           Shared in this space
         </p>
 
-        <div style={{ display: "grid", gap: 18 }}>
+        <div
+          style={{
+            display: "grid",
+            gap: 18,
+            scrollBehavior: "smooth",
+          }}
+        >
           {messages.length === 0 ? (
-            <p style={{ opacity: 0.6 }}>
-              Nothing shared yet. Be the first to encourage.
-            </p>
+            <div
+              style={{
+                padding: 20,
+                borderRadius: 20,
+                border: "1px solid rgba(255,255,255,0.06)",
+                background: "rgba(255,255,255,0.015)",
+              }}
+            >
+              <p
+                style={{
+                  margin: 0,
+                  opacity: 0.68,
+                  lineHeight: 1.7,
+                }}
+              >
+                Nothing has been shared yet. You can begin gently.
+              </p>
+            </div>
           ) : (
             messages.map((msg) => (
-              <div
+              <article
                 key={msg.id}
                 style={{
                   padding: "18px 18px 16px",
-                  borderRadius: 18,
+                  borderRadius: 20,
                   border: "1px solid rgba(255,255,255,0.07)",
                   background: "rgba(255,255,255,0.02)",
                 }}
               >
-                <p style={{ fontWeight: 600, margin: "0 0 6px" }}>
-                  {msg.author_name}
-                </p>
                 <p
                   style={{
+                    fontWeight: 600,
                     margin: "0 0 8px",
-                    lineHeight: 1.7,
+                  }}
+                >
+                  {msg.author_name}
+                </p>
+
+                <p
+                  style={{
+                    margin: "0 0 10px",
+                    lineHeight: 1.8,
                     opacity: 0.88,
                   }}
                 >
                   {msg.message}
                 </p>
-                <p style={{ opacity: 0.35, margin: 0, fontSize: "0.8rem" }}>
+
+                <p
+                  style={{
+                    opacity: 0.35,
+                    margin: 0,
+                    fontSize: 12,
+                  }}
+                >
                   {new Date(msg.created_at).toLocaleString("en-GB", {
                     dateStyle: "medium",
                     timeStyle: "short",
                   })}
                 </p>
-              </div>
+              </article>
             ))
           )}
         </div>
-      </div>
+      </section>
 
-      <div
+      <section
         style={{
           display: "grid",
-          gap: 10,
-          padding: 18,
+          gap: 12,
+          padding: 20,
           borderRadius: 20,
           border: "1px solid rgba(255,255,255,0.08)",
           background: "rgba(255,255,255,0.02)",
@@ -157,9 +201,21 @@ export default function FellowshipRoomRealtime({
         <p
           style={{
             opacity: 0.55,
-            fontSize: "0.85rem",
+            fontSize: 12,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
             margin: 0,
-            lineHeight: 1.6,
+          }}
+        >
+          Share quietly
+        </p>
+
+        <p
+          style={{
+            opacity: 0.72,
+            fontSize: "0.95rem",
+            lineHeight: 1.7,
+            margin: 0,
           }}
         >
           Speak with care. Let your words build others up.
@@ -177,6 +233,7 @@ export default function FellowshipRoomRealtime({
             color: "inherit",
             padding: "0.9rem",
             resize: "vertical",
+            lineHeight: 1.7,
           }}
         />
 
@@ -197,7 +254,19 @@ export default function FellowshipRoomRealtime({
         >
           {sending ? "Sharing..." : "Share quietly"}
         </button>
-      </div>
+
+        {notice ? (
+          <p
+            style={{
+              opacity: 0.68,
+              margin: 0,
+              lineHeight: 1.6,
+            }}
+          >
+            {notice}
+          </p>
+        ) : null}
+      </section>
     </div>
   );
 }
