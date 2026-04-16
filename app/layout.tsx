@@ -20,11 +20,12 @@ export default function RootLayout({
             <Link href="/" className="brand">
               Verbum Gathering
             </Link>
-            <nav className="nav-links">
-              <Link href="/live">Live</Link>
-              <Link href="/today">Today</Link>
-              <Link href="/rooms">Rooms</Link>
-            </nav>
+           <nav className="nav-links">
+  <Link href="/gathering">Gathering</Link>
+  <Link href="/today">Today</Link>
+  <Link href="/rooms">Rooms</Link>
+</nav>
+
           </div>
         </header>
         <main>{children}</main>
