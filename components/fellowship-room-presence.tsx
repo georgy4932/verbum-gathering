@@ -49,7 +49,13 @@ export default function FellowshipRoomPresence({ roomSlug }: Props) {
   }
 
   return (
-    <p style={{ opacity: 0.6, marginBottom: 16 }}>
+    <p
+      style={{
+        opacity: 0.6,
+        marginBottom: 0,
+        lineHeight: 1.7,
+      }}
+    >
       {label}
     </p>
   );
