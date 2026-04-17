@@ -82,7 +82,8 @@ export default function LeadPage() {
             <input
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              placeholder="George Odeh"
+              placeholder="Your full name"
+
               style={{ width: "100%", minHeight: 46, borderRadius: 14, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.02)", color: "inherit", padding: "0 0.9rem", boxSizing: "border-box" }}
             />
           </div>
