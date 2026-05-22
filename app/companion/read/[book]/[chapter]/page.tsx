@@ -1,40 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { BOOK_BY_SLUG, slugToApiParam, formatPassageRef } from "@/lib/bible/books";
+import { BOOK_BY_SLUG, formatPassageRef } from "@/lib/bible/books";
+import { getPassageText, isValidVersion, type BibleVersion } from "@/lib/bible/api-bible";
 import { getCurrentUserProfile } from "@/lib/profile";
 import { getNotesForPassage, getPassageSavedStatus, getThreadForPassage } from "@/lib/db/companion";
 import NoteEditor from "@/components/companion/note-editor";
 import AICompanion from "@/components/companion/ai-companion";
 import SavePassageButton from "./save-passage-button";
+import TranslationSelector from "@/components/companion/translation-selector";
 
 export const dynamic = "force-dynamic";
-
-interface BibleApiVerse {
-  verse: number;
-  text: string;
-}
-
-interface BibleApiResponse {
-  reference: string;
-  verses: BibleApiVerse[];
-  text: string;
-  error?: string;
-}
-
-async function fetchChapter(bookSlug: string, chapter: number): Promise<BibleApiResponse | null> {
-  const apiParam = `${slugToApiParam(bookSlug)}+${chapter}`;
-  try {
-    const res = await fetch(`https://bible-api.com/${apiParam}?translation=kjv`, {
-      next: { revalidate: 86400 }, // cache for 24h — KJV text never changes
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (data.error) return null;
-    return data as BibleApiResponse;
-  } catch {
-    return null;
-  }
-}
 
 export async function generateMetadata({
   params,
@@ -49,25 +24,27 @@ export async function generateMetadata({
 
 export default async function PassagePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ book: string; chapter: string }>;
+  searchParams: Promise<{ v?: string }>;
 }) {
-  const { book: bookSlug, chapter: chapterStr } = await params;
+  const [{ book: bookSlug, chapter: chapterStr }, sp] = await Promise.all([params, searchParams]);
   const chapter = parseInt(chapterStr, 10);
 
   const bookData = BOOK_BY_SLUG.get(bookSlug);
-  if (!bookData || isNaN(chapter) || chapter < 1 || chapter > bookData.chapters) {
-    notFound();
-  }
+  if (!bookData || isNaN(chapter) || chapter < 1 || chapter > bookData.chapters) notFound();
 
   const passageRef = formatPassageRef(bookSlug, chapter);
   const prevChapter = chapter > 1 ? chapter - 1 : null;
   const nextChapter = chapter < bookData.chapters ? chapter + 1 : null;
 
-  const [bibleData, { user }] = await Promise.all([
-    fetchChapter(bookSlug, chapter),
-    getCurrentUserProfile(),
-  ]);
+  // Resolve translation: URL param ?v= > profile preference > KJV
+  const { user, profile } = await getCurrentUserProfile();
+  const profileVersion = (profile as { preferred_bible_version?: string } | null)?.preferred_bible_version ?? 'KJV';
+  const requestedVersion: BibleVersion = isValidVersion(sp.v) ? sp.v : (isValidVersion(profileVersion) ? profileVersion : 'KJV');
+
+  const passageData = await getPassageText(bookSlug, chapter, requestedVersion);
 
   const [notes, isSaved, thread] = user
     ? await Promise.all([
@@ -77,12 +54,16 @@ export default async function PassagePage({
       ])
     : [[], false, null];
 
+  const servedVersion: BibleVersion = passageData?.version ?? requestedVersion;
+  const wasFallback = passageData !== null && servedVersion !== requestedVersion;
+  const apiKeyMissing = !process.env.BIBLE_API_KEY;
+
   return (
     <main style={{ padding: "0 1.25rem 5rem" }}>
       <div style={{ maxWidth: 720, margin: "0 auto" }}>
 
         {/* Breadcrumb */}
-        <div style={{ padding: "2rem 0 2.5rem", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <div style={{ padding: "2rem 0 2rem", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <Link href="/companion" style={{ fontSize: 12, color: "var(--stone)" }}>Companion</Link>
           <span style={{ color: "var(--faint2)" }}>›</span>
           <Link href="/companion/read" style={{ fontSize: 12, color: "var(--stone)" }}>Scripture</Link>
@@ -92,22 +73,39 @@ export default async function PassagePage({
           <span style={{ fontSize: 12, color: "var(--muted)" }}>Chapter {chapter}</span>
         </div>
 
-        {/* Passage heading */}
-        <h1 style={{
-          fontFamily: "'IM Fell English', serif",
-          fontSize: "clamp(2rem, 5vw, 3.4rem)",
-          lineHeight: 1.05,
-          marginBottom: 36,
-          letterSpacing: "0.01em",
-        }}>
-          {passageRef}
-        </h1>
+        {/* Title row + translation selector */}
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, marginBottom: 28, flexWrap: "wrap" }}>
+          <h1 style={{
+            fontFamily: "'IM Fell English', serif",
+            fontSize: "clamp(2rem, 5vw, 3.4rem)",
+            lineHeight: 1.05,
+            letterSpacing: "0.01em",
+            margin: 0,
+          }}>
+            {passageRef}
+          </h1>
+          <div style={{ paddingTop: 10, flexShrink: 0 }}>
+            <TranslationSelector current={servedVersion} isAuthenticated={!!user} />
+          </div>
+        </div>
 
-        {/* Bible text — Scripture is the primary voice */}
+        {/* Soft notices — never louder than the text */}
+        {wasFallback && (
+          <p style={{ fontSize: 12, color: "var(--stone)", marginBottom: 20, fontStyle: "italic", opacity: 0.75 }}>
+            {requestedVersion} is not yet available — showing {servedVersion}.
+          </p>
+        )}
+        {apiKeyMissing && requestedVersion === 'KJV' && (
+          <p style={{ fontSize: 11, color: "var(--stone)", marginBottom: 20, opacity: 0.5 }}>
+            Set BIBLE_API_KEY in .env.local to unlock all translations.
+          </p>
+        )}
+
+        {/* Scripture — the primary voice, always */}
         <div style={{ marginBottom: 48 }}>
-          {bibleData ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-              {bibleData.verses.map((v) => (
+          {passageData ? (
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              {passageData.verses.map((v) => (
                 <p key={v.verse} style={{
                   fontFamily: "'IM Fell English', serif",
                   fontSize: "1.2rem",
@@ -125,7 +123,7 @@ export default async function PassagePage({
                   }}>
                     {v.verse}
                   </sup>
-                  {v.text.trim()}
+                  {v.text}
                 </p>
               ))}
             </div>
@@ -138,7 +136,7 @@ export default async function PassagePage({
           )}
         </div>
 
-        {/* Chapter navigation + save */}
+        {/* Chapter nav + save — version preserved across chapters */}
         <div style={{
           display: "flex",
           alignItems: "center",
@@ -152,20 +150,14 @@ export default async function PassagePage({
         }}>
           <div style={{ display: "flex", gap: 10 }}>
             {prevChapter ? (
-              <Link
-                href={`/companion/read/${bookSlug}/${prevChapter}`}
-                style={navButtonStyle}
-              >
+              <Link href={`/companion/read/${bookSlug}/${prevChapter}?v=${servedVersion}`} style={navButtonStyle}>
                 ← Ch {prevChapter}
               </Link>
             ) : (
               <span style={{ ...navButtonStyle, opacity: 0.3, cursor: "default" }}>← Previous</span>
             )}
             {nextChapter ? (
-              <Link
-                href={`/companion/read/${bookSlug}/${nextChapter}`}
-                style={navButtonStyle}
-              >
+              <Link href={`/companion/read/${bookSlug}/${nextChapter}?v=${servedVersion}`} style={navButtonStyle}>
                 Ch {nextChapter} →
               </Link>
             ) : (
@@ -182,7 +174,7 @@ export default async function PassagePage({
           )}
         </div>
 
-        {/* Notes — private formation record */}
+        {/* Notes */}
         {user ? (
           <NoteEditor passageRef={passageRef} existingNotes={notes} />
         ) : (
@@ -194,12 +186,12 @@ export default async function PassagePage({
           </div>
         )}
 
-        {/* AI Companion — always visually subordinate to the text */}
-        {user && bibleData && (
+        {/* AI Companion — always subordinate */}
+        {user && passageData && (
           <div style={{ marginTop: 48 }}>
             <AICompanion
               passageRef={passageRef}
-              passageText={bibleData.text}
+              passageText={passageData.fullText}
               initialMessages={thread?.messages ?? []}
               initialThreadId={thread?.id ?? null}
             />

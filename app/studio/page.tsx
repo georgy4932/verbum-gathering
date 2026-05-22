@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabase } from "@/lib/supabase";
 
 export const metadata = {
@@ -9,19 +10,31 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function StudioPage() {
-  const { data: teachings } = await supabase
-    .from("teachings")
-    .select("slug, title, passage_ref, published_at")
-    .eq("is_published", true)
-    .order("published_at", { ascending: false })
-    .limit(6);
+  const [{ data: teachings }, { data: series }] = await Promise.all([
+    supabase
+      .from("teachings")
+      .select("slug, title, passage_ref, kind, published_at")
+      .eq("is_published", true)
+      .order("published_at", { ascending: false })
+      .limit(10),
+    supabase
+      .from("teaching_series")
+      .select("slug, title, description")
+      .eq("is_published", true)
+      .order("created_at", { ascending: false })
+      .limit(3),
+  ]);
 
-  const { data: series } = await supabase
-    .from("teaching_series")
-    .select("slug, title, description")
-    .eq("is_published", true)
-    .order("created_at", { ascending: false })
-    .limit(3);
+  // Role check for minister actions — separate server client reads session cookie
+  const serverSupabase = await createSupabaseServerClient();
+  const { data: { user } } = await serverSupabase.auth.getUser();
+  let isMinister = false;
+  if (user) {
+    const { data: roleRow } = await serverSupabase
+      .from("user_roles").select("role").eq("id", user.id).maybeSingle();
+    const role = roleRow?.role ?? "member";
+    isMinister = ["minister", "admin"].includes(role);
+  }
 
   return (
     <main style={{ padding: "0 1.25rem 4rem" }}>
@@ -38,14 +51,22 @@ export default async function StudioPage() {
             Teachings, sermons, and devotions rooted in Scripture.
             Every message anchored to a passage — not a platform or a personality.
           </p>
+          {isMinister && (
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 24 }}>
+              <Link href="/studio/new" className="button primary">
+                + New teaching
+              </Link>
+              <Link href="/studio/series/new" className="button secondary">
+                + New series
+              </Link>
+            </div>
+          )}
         </div>
 
         {/* Teaching Series */}
         {series && series.length > 0 && (
           <div style={{ marginBottom: 48 }}>
-            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 20 }}>
-              <span className="eyebrow" style={{ margin: 0 }}>Series</span>
-            </div>
+            <span className="eyebrow">Series</span>
             <div className="card-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
               {series.map((s) => (
                 <Link
@@ -78,22 +99,26 @@ export default async function StudioPage() {
                   key={t.slug}
                   href={`/studio/${t.slug}`}
                   style={{
-                    display: "flex", flexDirection: "column", gap: 6,
+                    display: "flex", alignItems: "center", gap: 16,
                     padding: "20px 24px",
                     background: "var(--bg1)",
                     textDecoration: "none", color: "inherit",
                     borderBottom: "1px solid var(--faint)",
-                    transition: "background 0.2s",
                   }}
                 >
-                  <h3 style={{ fontSize: "1.05rem", margin: 0, fontFamily: "'IM Fell English', serif" }}>
-                    {t.title}
-                  </h3>
-                  {t.passage_ref && (
-                    <span style={{ fontSize: 12, color: "var(--gold-lo)", letterSpacing: "0.1em" }}>
-                      {t.passage_ref}
-                    </span>
-                  )}
+                  <div style={{ flex: 1 }}>
+                    <h3 style={{ fontSize: "1.05rem", margin: "0 0 4px", fontFamily: "'IM Fell English', serif" }}>
+                      {t.title}
+                    </h3>
+                    {t.passage_ref && (
+                      <span style={{ fontSize: 12, color: "var(--gold-lo)", letterSpacing: "0.1em" }}>
+                        {t.passage_ref}
+                      </span>
+                    )}
+                  </div>
+                  <span style={{ fontSize: 10, color: "var(--stone)", textTransform: "capitalize", letterSpacing: "0.1em" }}>
+                    {t.kind}
+                  </span>
                 </Link>
               ))}
             </div>
@@ -101,15 +126,19 @@ export default async function StudioPage() {
         ) : (
           <div style={{
             padding: "48px 32px", textAlign: "center",
-            border: "1px solid var(--faint)", borderRadius: 16,
-            background: "var(--bg1)",
+            border: "1px solid var(--faint)", borderRadius: 16, background: "var(--bg1)",
           }}>
             <p style={{ fontFamily: "'IM Fell English', serif", fontStyle: "italic", fontSize: "1.1rem", color: "var(--muted)", lineHeight: 1.85, marginBottom: 8 }}>
               "How beautiful are the feet of those who bring good news."
             </p>
-            <span style={{ fontSize: 11, letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--stone)" }}>
+            <span style={{ fontSize: 11, letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--stone)", display: "block", marginBottom: isMinister ? 20 : 0 }}>
               Romans 10:15 · Teachings coming soon
             </span>
+            {isMinister && (
+              <Link href="/studio/new" style={{ fontSize: 13, color: "var(--studio)" }}>
+                Write the first teaching →
+              </Link>
+            )}
           </div>
         )}
 
