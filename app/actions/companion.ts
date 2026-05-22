@@ -120,6 +120,19 @@ export async function unsavePassage(passageRef: string): Promise<ActionResult> {
   return { success: true };
 }
 
+export async function updatePreferredVersion(version: string): Promise<ActionResult> {
+  const { supabase, user } = await getAuthUser();
+  if (!user) return { success: false, error: "Not authenticated." };
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ preferred_bible_version: version })
+    .eq("id", user.id);
+
+  if (error) return { success: false, error: "Could not update preference." };
+  return { success: true };
+}
+
 export async function getOrCreateCompanionThread(
   passageRef: string
 ): Promise<ActionResult<{ threadId: string }>> {
