@@ -60,11 +60,19 @@ export default function AICompanion({
         }),
       });
 
-      if (!res.ok) throw new Error("Response error");
-
       const data = await res.json();
-      setMessages((prev) => [...prev, { role: "assistant", content: data.content }]);
-      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+
+      if (res.status === 503 && data.error === "companion_unavailable") {
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: "The AI companion is not available in this environment. You can still read, reflect, and write notes on this passage." },
+        ]);
+      } else if (!res.ok) {
+        throw new Error(data.error ?? "Response error");
+      } else {
+        setMessages((prev) => [...prev, { role: "assistant", content: data.content }]);
+        setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+      }
     } catch {
       setMessages((prev) => [
         ...prev,

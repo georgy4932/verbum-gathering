@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-const client = new Anthropic();
+// Lazy — instantiating without ANTHROPIC_API_KEY throws; only create when the route fires.
+function getClient(): Anthropic | null {
+  if (!process.env.ANTHROPIC_API_KEY) return null;
+  return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+}
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -44,6 +48,14 @@ export async function POST(req: NextRequest) {
   const lastUserMessage = messages[messages.length - 1];
   if (lastUserMessage.role !== "user") {
     return NextResponse.json({ error: "Last message must be from user." }, { status: 400 });
+  }
+
+  const client = getClient();
+  if (!client) {
+    return NextResponse.json(
+      { error: "companion_unavailable", message: "The AI companion is not configured on this server." },
+      { status: 503 }
+    );
   }
 
   try {
