@@ -1,8 +1,9 @@
-/* ── VERBUM GATHERING — SACRED AESTHETIC ── */
+/* ── VERBUMSCRIBE — SACRED AESTHETIC ── */
 
 @import url('https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
 
 :root {
+  /* ── Core palette ── */
   --bg:      #0f0d0a;
   --bg1:     #161410;
   --bg2:     #1f1c14;
@@ -18,6 +19,23 @@
   --green:   #5ea773;
   --green-hi:#86efac;
   --live:    #c94e28;
+
+  /* ── Movement accents (muted, sacred — not loud) ── */
+  /* Companion: The Word interpreted — quiet blue-grey of contemplation */
+  --companion:    #8fa8c4;
+  --companion-lo: #2e3f54;
+
+  /* Gathering: The Word shared — existing living green */
+  --gathering:    #5ea773;
+  --gathering-lo: #1f3d2a;
+
+  /* Studio: The Word proclaimed — existing gold of proclamation */
+  --studio:    #c8a96a;
+  --studio-lo: #3d2f12;
+
+  /* Worship: The Word embodied — deep violet of devotion */
+  --worship:    #9b7cc8;
+  --worship-lo: #2f1f4a;
 }
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -33,9 +51,13 @@ button { font: inherit; }
 .nav { display: flex; align-items: center; justify-content: space-between; }
 .brand { font-family: 'IM Fell English', serif; font-size: 15px; letter-spacing: 0.25em; color: var(--gold); }
 .brand:hover { opacity: 0.8; }
-.nav-links { display: flex; align-items: center; gap: 32px; }
+.nav-links { display: flex; align-items: center; gap: 28px; }
 .nav-links a { font-size: 13px; font-weight: 500; color: var(--stone); letter-spacing: 0.06em; transition: color 0.2s; }
 .nav-links a:hover { color: var(--cream); }
+.nav-links a[data-active="true"] { color: var(--cream); }
+
+/* Movement divider in nav */
+.nav-divider { width: 1px; height: 16px; background: var(--faint); margin: 0 4px; }
 
 h1 { font-family: 'IM Fell English', serif; font-size: clamp(2.4rem, 5vw, 4.2rem); line-height: 1.02; color: var(--cream); margin: 0 0 1rem; }
 h2 { font-family: 'IM Fell English', serif; font-size: clamp(1.6rem, 3vw, 2.4rem); color: var(--cream); margin: 0 0 0.75rem; line-height: 1.1; }
@@ -72,11 +94,45 @@ h3 { font-family: 'IM Fell English', serif; font-size: 1.3rem; color: var(--crea
 .label { font-size: 9px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold-lo); margin-bottom: 10px; display: block; }
 .devotion-card { gap: 0; padding: 0; overflow: hidden; }
 
+/* ── Scripture block — canonical display across all movements ── */
+.scripture-block { border-left: 2px solid var(--gold-lo); padding: 18px 20px; background: rgba(200,169,106,0.04); border-radius: 0 8px 8px 0; }
+.scripture-block .ref { font-size: 10px; font-weight: 700; letter-spacing: 0.3em; text-transform: uppercase; color: var(--gold-lo); margin-bottom: 10px; display: block; }
+.scripture-block .text { font-family: 'IM Fell English', serif; font-style: italic; font-size: 1.05rem; color: var(--muted); line-height: 1.85; }
+
+/* ── Movement card — used on hub pages ── */
+.movement-card { border: 1px solid var(--faint); border-radius: 20px; padding: 28px; background: rgba(255,255,255,0.025); display: flex; flex-direction: column; gap: 14px; text-decoration: none; color: inherit; transition: border-color 0.25s, background 0.25s; }
+.movement-card:hover { background: rgba(255,255,255,0.04); }
+.movement-card .movement-label { font-size: 10px; font-weight: 700; letter-spacing: 0.32em; text-transform: uppercase; }
+.movement-card h2 { font-family: 'IM Fell English', serif; font-size: 1.35rem; margin: 0; line-height: 1.2; }
+.movement-card p { font-size: 14px; color: var(--stone); line-height: 1.75; margin: 0; }
+.movement-card .enter { font-size: 12px; color: var(--muted); margin-top: auto; letter-spacing: 0.04em; }
+
+/* Per-movement card accents */
+.movement-card.companion { border-color: var(--companion-lo); }
+.movement-card.companion:hover { border-color: var(--companion); background: rgba(143,168,196,0.05); }
+.movement-card.companion .movement-label { color: var(--companion); }
+.movement-card.gathering { border-color: var(--gathering-lo); }
+.movement-card.gathering:hover { border-color: var(--gathering); background: rgba(94,167,115,0.05); }
+.movement-card.gathering .movement-label { color: var(--gathering); }
+.movement-card.studio { border-color: var(--studio-lo); }
+.movement-card.studio:hover { border-color: var(--studio); background: rgba(200,169,106,0.05); }
+.movement-card.studio .movement-label { color: var(--studio); }
+.movement-card.worship { border-color: var(--worship-lo); }
+.movement-card.worship:hover { border-color: var(--worship); background: rgba(155,124,200,0.05); }
+.movement-card.worship .movement-label { color: var(--worship); }
+
+/* ── Page header — consistent across all movement pages ── */
+.page-header { padding: 3.5rem 0 2.5rem; }
+.page-header .movement-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 0.4em; text-transform: uppercase; display: block; margin-bottom: 14px; }
+.page-header h1 { margin-bottom: 16px; }
+.page-header .subtitle { font-size: 1.05rem; color: var(--stone); line-height: 1.75; max-width: 640px; margin: 0; }
+
 @media (max-width: 768px) {
   .container { padding: 0 20px; }
   .hero { padding: 60px 0 48px; }
   .two-column { grid-template-columns: 1fr; }
   .hero-actions { flex-direction: column; align-items: flex-start; }
   .section { padding: 52px 0; }
-  .nav-links { gap: 20px; }
+  .nav-links { gap: 16px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .nav-links .nav-divider { display: none; }
 }

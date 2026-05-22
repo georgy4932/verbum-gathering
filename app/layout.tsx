@@ -3,8 +3,8 @@ import "./globals.css";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Verbum Gathering",
-  description: "A place for daily devotion, fellowship, Bible study, and worship.",
+  title: "VerbumScribe",
+  description: "The Word, with you. A quiet place for Scripture, prayer, teaching, and worship.",
 };
 
 export default function RootLayout({
@@ -18,14 +18,16 @@ export default function RootLayout({
         <header className="site-header">
           <div className="container nav">
             <Link href="/" className="brand">
-              Verbum Gathering
+              VerbumScribe
             </Link>
-          <nav className="nav-links">
-  <Link href="/gathering">Gathering</Link>
-  <Link href="/today">Today</Link>
-</nav>
-
-
+            <nav className="nav-links" aria-label="Primary navigation">
+              <Link href="/companion">Companion</Link>
+              <Link href="/gathering">Gathering</Link>
+              <Link href="/studio">Studio</Link>
+              <Link href="/worship">Worship</Link>
+              <span className="nav-divider" aria-hidden="true" />
+              <Link href="/today">Today</Link>
+            </nav>
           </div>
         </header>
         <main>{children}</main>

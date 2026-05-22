@@ -30,90 +30,145 @@ export default async function HomePage() {
 
   return (
     <main>
-      <section style={{ padding: "5rem 1.25rem 3rem" }}>
-        <div style={{ maxWidth: 900, margin: "0 auto" }}>
-          <p style={{ opacity: 0.6, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 12 }}>
-            A quiet place to gather
-          </p>
-          <h1 style={{ fontSize: "clamp(2.5rem, 6vw, 4.5rem)", lineHeight: 1.1, marginBottom: 20 }}>
+
+      {/* Hero */}
+      <section style={{ padding: "5rem 1.25rem 3.5rem", position: "relative", overflow: "hidden" }}>
+        <div style={{
+          position: "absolute", top: "50%", left: "50%",
+          transform: "translate(-50%, -60%)",
+          width: 700, height: 700,
+          background: "radial-gradient(ellipse, rgba(200,169,106,0.07) 0%, transparent 65%)",
+          pointerEvents: "none",
+        }} />
+        <div style={{ maxWidth: 900, margin: "0 auto", position: "relative" }}>
+          <span className="eyebrow">The Word, with you</span>
+          <h1 style={{ fontSize: "clamp(2.5rem, 6vw, 4.5rem)", lineHeight: 1.05, marginBottom: 20 }}>
             Come and be still.
           </h1>
-          <p style={{ opacity: 0.8, fontSize: "1.1rem", lineHeight: 1.7, maxWidth: 600, marginBottom: 32 }}>
-            Join others in prayer, Scripture, and worship.
-            Not to scroll — but to remain.
+          <p style={{ color: "var(--stone)", fontSize: "1.1rem", lineHeight: 1.8, maxWidth: 560, marginBottom: 36 }}>
+            One quiet place for Scripture, prayer, teaching, and worship.
+            Not to scroll — but to remain with the Word.
           </p>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-            <Link href="/gathering" style={{ display: "inline-flex", alignItems: "center", padding: "13px 26px", borderRadius: 9, background: "#c8a96a", color: "#0f0d0a", fontWeight: 600, fontSize: 13 }}>
-              Enter gathering
+            <Link href="/companion" className="button primary">
+              Open Scripture
             </Link>
-            <Link href="/today" style={{ display: "inline-flex", alignItems: "center", padding: "13px 26px", borderRadius: 9, border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.75)", fontSize: 13 }}>
-              Today's Devotion
+            <Link href="/gathering" className="button secondary">
+              Enter gathering
             </Link>
           </div>
 
-          {!user ? (
-            <div style={{ marginTop: 32, padding: "18px 22px", borderRadius: 20, border: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)", maxWidth: 560 }}>
-              <p style={{ margin: "0 0 10px", opacity: 0.82, lineHeight: 1.7 }}>
-                To share prayers, enter live gatherings, and participate in fellowship spaces, you'll need to sign in.
+          {!user && (
+            <div style={{
+              marginTop: 36, padding: "18px 22px", borderRadius: 16,
+              border: "1px solid var(--faint)", background: "rgba(255,255,255,0.02)",
+              maxWidth: 520,
+            }}>
+              <p style={{ margin: "0 0 10px", color: "var(--stone)", lineHeight: 1.7, fontSize: 14 }}>
+                To read with notes, join gatherings, and carry Scripture with you — sign in quietly.
               </p>
-              <Link href="/sign-in" style={{ color: "#c8a96a", fontSize: 13, fontWeight: 500 }}>
-                Sign in quietly →
+              <Link href="/sign-in" className="text-link">
+                Sign in →
               </Link>
             </div>
-          ) : null}
+          )}
         </div>
       </section>
 
-      <section style={{ padding: "2rem 1.25rem 3rem" }}>
+      {/* Four Movements */}
+      <section style={{ padding: "2.5rem 1.25rem 3rem", borderTop: "1px solid var(--faint)" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-          <p style={{ opacity: 0.6, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 12 }}>
-            Live now
-          </p>
-          <h2 style={{ fontSize: "clamp(1.8rem, 4vw, 2.6rem)", marginBottom: 24 }}>
+          <div style={{ marginBottom: 32 }}>
+            <span className="eyebrow">Four movements</span>
+            <h2 style={{ fontSize: "clamp(1.4rem, 2.5vw, 1.9rem)", marginBottom: 8 }}>
+              One coherent life of faith
+            </h2>
+            <p style={{ color: "var(--stone)", fontSize: 14, lineHeight: 1.75, maxWidth: 560 }}>
+              Scripture at the center. Every movement ordered around the Word — not content, not creators, not engagement.
+            </p>
+          </div>
+
+          <div className="card-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}>
+
+            <Link href="/companion" className="movement-card companion">
+              <span className="movement-label">Companion</span>
+              <h2>The Word interpreted</h2>
+              <p>Read Scripture. Reflect. Ask questions. Study with an AI companion that serves the text, never replaces it.</p>
+              <span className="enter">Open a passage →</span>
+            </Link>
+
+            <Link href="/gathering" className="movement-card gathering">
+              <span className="movement-label">Gathering</span>
+              <h2>The Word shared</h2>
+              <p>Prayer rooms, Bible studies, live gatherings, and fellowship spaces ordered around Scripture and guided presence.</p>
+              <span className="enter">Enter gathering →</span>
+            </Link>
+
+            <Link href="/studio" className="movement-card studio">
+              <span className="movement-label">Studio</span>
+              <h2>The Word proclaimed</h2>
+              <p>Sermons, devotions, and teachings rooted in Scripture — from receiving truth to proclaiming it.</p>
+              <span className="enter">Listen →</span>
+            </Link>
+
+            <Link href="/worship" className="movement-card worship">
+              <span className="movement-label">Worship</span>
+              <h2>The Word embodied</h2>
+              <p>Music, liturgy, silence, and sacred practice. Truth becomes devotion and rhythm, not just information.</p>
+              <span className="enter">Enter worship →</span>
+            </Link>
+
+          </div>
+        </div>
+      </section>
+
+      {/* Live Now */}
+      <section style={{ padding: "2.5rem 1.25rem 3rem", borderTop: "1px solid var(--faint)", background: "var(--bg1)" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+          <span className="eyebrow">Live now</span>
+          <h2 style={{ fontSize: "clamp(1.4rem, 2.5vw, 1.9rem)", marginBottom: 24 }}>
             A gathering is happening
           </h2>
           <HomeLiveNow />
         </div>
       </section>
 
-      <section style={{ padding: "2rem 1.25rem 4rem" }}>
+      {/* Today + Fellowship */}
+      <section style={{ padding: "2.5rem 1.25rem 4rem", borderTop: "1px solid var(--faint)" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16 }}>
-          <div style={{ border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: 28, background: "rgba(255,255,255,0.03)", display: "flex", flexDirection: "column", gap: 12 }}>
-            <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.4em", textTransform: "uppercase", color: "#6b5530" }}>
-              Today
-            </p>
-            <h3 style={{ fontSize: "1.3rem", margin: 0 }}>
-              {devotion?.title}
-            </h3>
-            <p style={{ fontFamily: "'IM Fell English', serif", fontStyle: "italic", opacity: 0.75, lineHeight: 1.75, fontSize: 15, borderLeft: "2px solid #6b5530", paddingLeft: 14 }}>
-              {devotion?.scripture}
-            </p>
-            <Link href="/today" style={{ color: "#c8a96a", fontSize: 13, fontWeight: 500, marginTop: "auto" }}>
-              Open today's devotion →
-            </Link>
-          </div>
 
-          <div style={{ border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: 28, background: "rgba(255,255,255,0.03)", display: "flex", flexDirection: "column", gap: 12 }}>
-            <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.4em", textTransform: "uppercase", color: "#6b5530" }}>
-              Gathering spaces
-            </p>
-            <h3 style={{ fontSize: "1.3rem", margin: 0 }}>
-              Fellowship
-            </h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {devotion && (
+            <div className="card" style={{ borderRadius: 20 }}>
+              <span className="label">Today's devotion</span>
+              <h3>{devotion.title}</h3>
+              <div className="scripture-block" style={{ marginTop: 4 }}>
+                <p className="text">{devotion.scripture}</p>
+              </div>
+              <Link href="/today" className="text-link" style={{ marginTop: 8 }}>
+                Open today's devotion →
+              </Link>
+            </div>
+          )}
+
+          <div className="card" style={{ borderRadius: 20 }}>
+            <span className="label">Fellowship spaces</span>
+            <h3>Gathering spaces</h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
               {(fellowshipRooms ?? []).map((r) => (
                 <div key={r.slug} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13 }}>
-                  <span style={{ opacity: 0.8 }}>{r.name}</span>
+                  <span style={{ color: "var(--muted)" }}>{r.name}</span>
                   <FellowshipRoomPresenceBadge roomSlug={r.slug} />
                 </div>
               ))}
             </div>
-            <Link href="/rooms" style={{ color: "#c8a96a", fontSize: 13, fontWeight: 500, marginTop: "auto" }}>
-              Explore spaces →
+            <Link href="/rooms" className="text-link" style={{ marginTop: "auto" }}>
+              Enter a space →
             </Link>
           </div>
+
         </div>
       </section>
+
     </main>
   );
 }
