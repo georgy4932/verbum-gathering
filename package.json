@@ -8,18 +8,16 @@
     "start": "next start"
   },
   "dependencies": {
-"next": "15.3.8",
-
-
-    "react": "^19",
-    "react-dom": "^19",
-    "@supabase/supabase-js": "^2.49.4",
-    "@supabase/ssr": "^0.6.1",
-
-    "livekit-client": "^2.13.2",
+    "@anthropic-ai/sdk": "^0.51.0",
     "@livekit/components-react": "^2.9.6",
     "@livekit/components-styles": "^1.1.0",
-    "livekit-server-sdk": "^2.13.1"
+    "@supabase/ssr": "^0.6.1",
+    "@supabase/supabase-js": "^2.49.4",
+    "livekit-client": "^2.13.2",
+    "livekit-server-sdk": "^2.13.1",
+    "next": "15.3.8",
+    "react": "^19",
+    "react-dom": "^19"
   },
   "devDependencies": {
     "@types/node": "^20",

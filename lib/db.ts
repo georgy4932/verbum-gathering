@@ -1,34 +1,8 @@
 import { supabase } from "@/lib/supabase";
+import type { LiveRoom, FellowshipRoom, Devotion } from "@/lib/types/domain";
 
-export type LiveRoom = {
-  id: string;
-  slug: string;
-  title: string;
-  description: string;
-  status: "live" | "soon" | "scheduled";
-  time_label: string;
-  host: string;
-  kind: "prayer" | "worship" | "study";
-  sort_order: number;
-};
-
-export type FellowshipRoom = {
-  id: string;
-  slug: string;
-  name: string;
-  description: string;
-  members_label: string;
-  sort_order: number;
-};
-
-export type Devotion = {
-  id: string;
-  title: string;
-  scripture: string;
-  reflection: string;
-  prayer: string;
-  published_at: string;
-};
+// Re-export domain types so existing imports continue working.
+export type { LiveRoom, FellowshipRoom, Devotion };
 
 export async function getLiveRooms(): Promise<LiveRoom[]> {
   const { data, error } = await supabase
