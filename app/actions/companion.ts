@@ -1,8 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import Anthropic from "@anthropic-ai/sdk";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { CompanionNote, SavedPassage } from "@/lib/types/domain";
+
+function getAnthropicClient(): Anthropic | null {
+  if (!process.env.ANTHROPIC_API_KEY) return null;
+  return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+}
 
 type ActionResult<T = undefined> =
   | { success: true; data?: T }
@@ -195,6 +201,67 @@ export async function getHighlightsForChapter(
     if (match) map.set(parseInt(match[1], 10), row.color as string);
   }
   return map;
+}
+
+// ── Study panel actions ───────────────────────────────────────────────────────
+
+export async function getNotesForVerse(
+  passageRef: string,
+): Promise<ActionResult<CompanionNote[]>> {
+  const { supabase, user } = await getAuthUser();
+  if (!user) return { success: false, error: "Sign in to view notes." };
+  if (!PASSAGE_REF_RE.test(passageRef)) return { success: false, error: "Invalid passage reference." };
+
+  const { data, error } = await supabase
+    .from("companion_notes")
+    .select("*")
+    .eq("user_id", user.id)
+    .eq("passage_ref", passageRef)
+    .order("created_at", { ascending: false });
+
+  if (error) return { success: false, error: "Could not load notes." };
+  return { success: true, data: (data ?? []) as CompanionNote[] };
+}
+
+export async function generateStudyInsight(
+  passageRef: string,
+  verseText: string,
+): Promise<ActionResult<string>> {
+  const { user } = await getAuthUser();
+  if (!user) return { success: false, error: "Sign in to use study insights." };
+  if (!PASSAGE_REF_RE.test(passageRef)) return { success: false, error: "Invalid passage reference." };
+
+  const client = getAnthropicClient();
+  if (!client) return { success: false, error: "ai_unavailable" };
+
+  try {
+    const response = await client.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 350,
+      messages: [
+        {
+          role: "user",
+          content: `You are a Bible study companion. Provide a brief study note for this verse.
+
+Verse: ${passageRef}
+Text: "${verseText}"
+
+Provide:
+1. Historical/cultural context (1-2 sentences)
+2. Key theological point (1-2 sentences)
+3. Practical application (1 sentence)
+
+Keep the response under 150 words. Serve the text, never replace it.`,
+        },
+      ],
+    });
+
+    const text =
+      response.content[0].type === "text" ? response.content[0].text : "";
+    return { success: true, data: text };
+  } catch {
+    return { success: false, error: "Could not generate insight." };
+  }
 }
 
 export async function getOrCreateCompanionThread(
