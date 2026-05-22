@@ -133,6 +133,70 @@ export async function updatePreferredVersion(version: string): Promise<ActionRes
   return { success: true };
 }
 
+// ── Highlight actions ─────────────────────────────────────────────────────────
+
+const VALID_COLORS = new Set(['yellow', 'blue', 'green', 'pink', 'orange']);
+const PASSAGE_REF_RE = /^[\w\s]+ \d+:\d+$/; // e.g. "John 3:16"
+
+export async function addHighlight(
+  passageRef: string,
+  color: string,
+): Promise<ActionResult> {
+  const { supabase, user } = await getAuthUser();
+  if (!user) return { success: false, error: "Sign in to highlight verses." };
+  if (!PASSAGE_REF_RE.test(passageRef)) return { success: false, error: "Invalid passage reference." };
+  if (!VALID_COLORS.has(color)) return { success: false, error: "Invalid highlight color." };
+
+  const { error } = await supabase
+    .from("verse_highlights")
+    .upsert(
+      { user_id: user.id, passage_ref: passageRef, color },
+      { onConflict: "user_id,passage_ref" },
+    );
+
+  if (error) return { success: false, error: "Could not save highlight." };
+  return { success: true };
+}
+
+export async function removeHighlight(passageRef: string): Promise<ActionResult> {
+  const { supabase, user } = await getAuthUser();
+  if (!user) return { success: false, error: "Not authenticated." };
+  if (!PASSAGE_REF_RE.test(passageRef)) return { success: false, error: "Invalid passage reference." };
+
+  const { error } = await supabase
+    .from("verse_highlights")
+    .delete()
+    .eq("user_id", user.id)
+    .eq("passage_ref", passageRef);
+
+  if (error) return { success: false, error: "Could not remove highlight." };
+  return { success: true };
+}
+
+// bookName is the display name, e.g. "John". passage_refs are stored as "John 3:16".
+export async function getHighlightsForChapter(
+  bookName: string,
+  chapter: number,
+): Promise<Map<number, string>> {
+  const { supabase, user } = await getAuthUser();
+  if (!user) return new Map();
+
+  const { data } = await supabase
+    .from("verse_highlights")
+    .select("passage_ref, color")
+    .eq("user_id", user.id)
+    .like("passage_ref", `${bookName} ${chapter}:%`);
+
+  if (!data) return new Map();
+
+  const map = new Map<number, string>();
+  for (const row of data) {
+    const match = (row.passage_ref as string).match(/:(\d+)$/);
+    if (match) map.set(parseInt(match[1], 10), row.color as string);
+  }
+  return map;
+}
+
 export async function getOrCreateCompanionThread(
   passageRef: string
 ): Promise<ActionResult<{ threadId: string }>> {
