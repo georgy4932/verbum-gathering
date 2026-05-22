@@ -4,10 +4,12 @@ import { BOOK_BY_SLUG, formatPassageRef } from "@/lib/bible/books";
 import { getPassageText, isValidVersion, type BibleVersion } from "@/lib/bible/api-bible";
 import { getCurrentUserProfile } from "@/lib/profile";
 import { getNotesForPassage, getPassageSavedStatus, getThreadForPassage } from "@/lib/db/companion";
+import { getHighlightsForChapter } from "@/app/actions/companion";
 import NoteEditor from "@/components/companion/note-editor";
 import AICompanion from "@/components/companion/ai-companion";
 import SavePassageButton from "./save-passage-button";
 import TranslationSelector from "@/components/companion/translation-selector";
+import PassageText from "@/components/companion/passage-text";
 
 export const dynamic = "force-dynamic";
 
@@ -46,17 +48,25 @@ export default async function PassagePage({
 
   const passageData = await getPassageText(bookSlug, chapter, requestedVersion);
 
-  const [notes, isSaved, thread] = user
+  const [notes, isSaved, thread, highlightMap] = user
     ? await Promise.all([
         getNotesForPassage(user.id, passageRef),
         getPassageSavedStatus(user.id, passageRef),
         getThreadForPassage(user.id, passageRef),
+        getHighlightsForChapter(bookData.name, chapter),
       ])
-    : [[], false, null];
+    : [[], false, null, new Map<number, string>()];
 
   const servedVersion: BibleVersion = passageData?.version ?? requestedVersion;
   const wasFallback = passageData !== null && servedVersion !== requestedVersion;
   const apiKeyMissing = !process.env.BIBLE_API_KEY;
+
+  // Merge highlight data into verse list
+  const verses = passageData?.verses.map((v) => ({
+    num: v.verse,
+    text: v.text,
+    highlightColor: highlightMap.get(v.verse),
+  })) ?? [];
 
   return (
     <main style={{ padding: "0 1.25rem 5rem" }}>
@@ -89,7 +99,7 @@ export default async function PassagePage({
           </div>
         </div>
 
-        {/* Soft notices — never louder than the text */}
+        {/* Soft notices */}
         {wasFallback && (
           <p style={{ fontSize: 12, color: "var(--stone)", marginBottom: 20, fontStyle: "italic", opacity: 0.75 }}>
             {requestedVersion} is not yet available — showing {servedVersion}.
@@ -101,32 +111,17 @@ export default async function PassagePage({
           </p>
         )}
 
-        {/* Scripture — the primary voice, always */}
+        {/* Scripture — primary voice */}
         <div style={{ marginBottom: 48 }}>
           {passageData ? (
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              {passageData.verses.map((v) => (
-                <p key={v.verse} style={{
-                  fontFamily: "'IM Fell English', serif",
-                  fontSize: "1.2rem",
-                  lineHeight: 2.1,
-                  color: "var(--cream)",
-                  margin: 0,
-                }}>
-                  <sup style={{
-                    fontSize: "0.65rem",
-                    color: "var(--stone)",
-                    fontFamily: "'DM Sans', sans-serif",
-                    verticalAlign: "super",
-                    marginRight: 4,
-                    letterSpacing: "0.04em",
-                  }}>
-                    {v.verse}
-                  </sup>
-                  {v.text}
-                </p>
-              ))}
-            </div>
+            <PassageText
+              bookSlug={bookSlug}
+              bookName={bookData.name}
+              chapter={chapter}
+              verses={verses}
+              translation={servedVersion}
+              isAuthenticated={!!user}
+            />
           ) : (
             <div style={{ padding: "32px 0" }}>
               <p style={{ color: "var(--stone)", fontStyle: "italic" }}>
@@ -175,20 +170,22 @@ export default async function PassagePage({
         </div>
 
         {/* Notes */}
-        {user ? (
-          <NoteEditor passageRef={passageRef} existingNotes={notes} />
-        ) : (
-          <div style={{ borderTop: "1px solid var(--faint)", paddingTop: 32 }}>
-            <p style={{ fontSize: 14, color: "var(--stone)", lineHeight: 1.7 }}>
-              <Link href="/sign-in" style={{ color: "var(--companion)" }}>Sign in</Link>
-              {" "}to write reflections on this passage.
-            </p>
-          </div>
-        )}
+        <div id="note-editor">
+          {user ? (
+            <NoteEditor passageRef={passageRef} existingNotes={notes} />
+          ) : (
+            <div style={{ borderTop: "1px solid var(--faint)", paddingTop: 32 }}>
+              <p style={{ fontSize: 14, color: "var(--stone)", lineHeight: 1.7 }}>
+                <Link href="/sign-in" style={{ color: "var(--companion)" }}>Sign in</Link>
+                {" "}to write reflections on this passage.
+              </p>
+            </div>
+          )}
+        </div>
 
-        {/* AI Companion — always subordinate */}
+        {/* AI Companion */}
         {user && passageData && (
-          <div style={{ marginTop: 48 }}>
+          <div id="ai-companion" style={{ marginTop: 48 }}>
             <AICompanion
               passageRef={passageRef}
               passageText={passageData.fullText}
