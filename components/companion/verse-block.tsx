@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useTransition, useCallback } from 'react';
+import { useState, useTransition, useCallback, useRef } from 'react';
 import { ColorPicker, HIGHLIGHT_COLORS } from './color-picker';
+import { StudyPanel } from './study-panel';
 import { addHighlight, removeHighlight, savePassage } from '@/app/actions/companion';
 
-// ── Inline SVG icons (avoids requiring lucide-react) ─────────────────────────
+// ── Inline SVG icons ──────────────────────────────────────────────────────────
 function IconHighlighter() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -78,6 +79,7 @@ export interface VerseBlockProps {
 }
 
 export function VerseBlock({
+  book,
   bookName,
   chapter,
   verseNum,
@@ -89,9 +91,11 @@ export function VerseBlock({
   const passageRef = `${bookName} ${chapter}:${verseNum}`;
   const [color, setColor] = useState(initialColor);
   const [showPicker, setShowPicker] = useState(false);
+  const [showStudyPanel, setShowStudyPanel] = useState(false);
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
   const [, startTransition] = useTransition();
+  const verseNumRef = useRef<HTMLButtonElement>(null);
 
   // Highlight
   const handleHighlight = useCallback((newColor: string) => {
@@ -110,14 +114,11 @@ export function VerseBlock({
     });
   }, [passageRef]);
 
-  // Note — scroll to note editor and pre-fill passage ref
+  // Note — scroll to note editor
   const handleNote = useCallback(() => {
     const el = document.getElementById('note-editor');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      // Dispatch event so NoteEditor can pre-fill the passage ref
-      window.dispatchEvent(new CustomEvent('verse:note', { detail: { passageRef } }));
-    }
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    window.dispatchEvent(new CustomEvent('verse:note', { detail: { passageRef } }));
   }, [passageRef]);
 
   // Save verse
@@ -135,11 +136,9 @@ export function VerseBlock({
     try {
       await navigator.clipboard.writeText(copyText);
     } catch {
-      // Fallback for environments where clipboard API is unavailable
       const ta = document.createElement('textarea');
       ta.value = copyText;
-      ta.style.position = 'fixed';
-      ta.style.opacity = '0';
+      ta.style.cssText = 'position:fixed;opacity:0';
       document.body.appendChild(ta);
       ta.select();
       document.execCommand('copy');
@@ -149,16 +148,12 @@ export function VerseBlock({
     setTimeout(() => setCopied(false), 1800);
   }, [passageRef, text, translation]);
 
-  // Ask AI — open companion and pre-fill
+  // Ask AI
   const handleAskAI = useCallback(() => {
     const el = document.getElementById('ai-companion');
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     window.dispatchEvent(new CustomEvent('verse:askAI', {
-      detail: {
-        passageRef,
-        verseText: text,
-        prompt: `Help me understand ${passageRef}: "${text}"`,
-      },
+      detail: { passageRef, verseText: text, prompt: `Help me understand ${passageRef}: "${text}"` },
     }));
   }, [passageRef, text]);
 
@@ -168,110 +163,141 @@ export function VerseBlock({
     : undefined;
 
   return (
-    <div
-      className="verse-block group"
-      data-verse={verseNum}
-      style={{
-        position: 'relative',
-        borderLeft: highlighted
-          ? `3px solid ${COLOR_BORDER[color!]}`
-          : '3px solid transparent',
-        background: highlighted ? COLOR_BG[color!] : 'transparent',
-        borderRadius: highlighted ? '0 6px 6px 0' : undefined,
-        paddingLeft: highlighted ? 10 : 13,
-        paddingRight: isAuthenticated ? 44 : 0,
-        paddingTop: 4,
-        paddingBottom: 4,
-        marginBottom: 2,
-        transition: 'background 0.2s, border-color 0.2s',
-      }}
-      aria-label={highlighted ? `Verse ${verseNum}, highlighted as ${colorLabel}` : undefined}
-    >
-      {/* Verse text */}
-      <p style={{
-        fontFamily: "'IM Fell English', serif",
-        fontSize: '1.2rem',
-        lineHeight: 2.1,
-        color: 'var(--cream)',
-        margin: 0,
-      }}>
-        <sup style={{
-          fontSize: '0.65rem',
-          color: highlighted ? COLOR_BORDER[color!] : 'var(--stone)',
-          fontFamily: "'DM Sans', sans-serif",
-          verticalAlign: 'super',
-          marginRight: 4,
-          letterSpacing: '0.04em',
-          transition: 'color 0.2s',
+    <>
+      <div
+        className="verse-block group"
+        data-verse={verseNum}
+        style={{
+          position: 'relative',
+          borderLeft: highlighted
+            ? `3px solid ${COLOR_BORDER[color!]}`
+            : '3px solid transparent',
+          background: highlighted ? COLOR_BG[color!] : 'transparent',
+          borderRadius: highlighted ? '0 6px 6px 0' : undefined,
+          paddingLeft: highlighted ? 10 : 13,
+          paddingRight: isAuthenticated ? 44 : 0,
+          paddingTop: 4,
+          paddingBottom: 4,
+          marginBottom: 2,
+          transition: 'background 0.2s, border-color 0.2s',
+        }}
+        aria-label={highlighted ? `Verse ${verseNum}, highlighted as ${colorLabel}` : undefined}
+      >
+        {/* Verse text */}
+        <p style={{
+          fontFamily: "'IM Fell English', serif",
+          fontSize: '1.2rem',
+          lineHeight: 2.1,
+          color: 'var(--cream)',
+          margin: 0,
         }}>
-          {verseNum}
-        </sup>
-        {text}
-      </p>
+          {/* Tappable verse number — opens study panel */}
+          <button
+            ref={verseNumRef}
+            onClick={() => setShowStudyPanel(true)}
+            aria-label={`Study notes for verse ${verseNum}`}
+            title={`Study ${passageRef}`}
+            style={{
+              display: 'inline',
+              background: 'none',
+              border: 'none',
+              padding: 0,
+              cursor: 'pointer',
+              fontSize: '0.65rem',
+              color: highlighted ? COLOR_BORDER[color!] : 'var(--stone)',
+              fontFamily: "'DM Sans', sans-serif",
+              verticalAlign: 'super',
+              marginRight: 4,
+              letterSpacing: '0.04em',
+              transition: 'color 0.15s',
+              lineHeight: 0,
+            }}
+            onMouseOver={(e) => { e.currentTarget.style.color = 'var(--companion)'; }}
+            onMouseOut={(e) => { e.currentTarget.style.color = highlighted ? COLOR_BORDER[color!] : 'var(--stone)'; }}
+          >
+            {verseNum}
+          </button>
+          {text}
+        </p>
 
-      {/* Action toolbar — revealed on hover/focus */}
-      {isAuthenticated && (
-        <div
-          className="verse-actions"
-          role="toolbar"
-          aria-label={`Actions for verse ${verseNum}`}
-          style={{
-            position: 'absolute',
-            right: -2,
-            top: '50%',
-            transform: 'translateY(-50%)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 1,
-            background: 'var(--bg2)',
-            border: '1px solid var(--faint2)',
-            borderRadius: 8,
-            padding: '3px 2px',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.45)',
-            opacity: 0,
-            pointerEvents: 'none',
-            transition: 'opacity 0.15s',
-            zIndex: 10,
-          }}
-        >
-          <ToolbarButton label="Highlight" onClick={() => setShowPicker((s) => !s)} active={highlighted}>
-            <IconHighlighter />
-          </ToolbarButton>
-          <ToolbarButton label="Add note" onClick={handleNote}>
-            <IconNote />
-          </ToolbarButton>
-          <ToolbarButton label={saved ? 'Saved!' : 'Save verse'} onClick={handleSave} active={saved}>
-            {saved ? <IconCheck /> : <IconBookmark />}
-          </ToolbarButton>
-          <ToolbarButton label={copied ? 'Copied!' : 'Copy verse'} onClick={handleCopy} active={copied}>
-            {copied ? <IconCheck /> : <IconCopy />}
-          </ToolbarButton>
-          <ToolbarButton label="Ask AI about this verse" onClick={handleAskAI}>
-            <IconSparkles />
-          </ToolbarButton>
-        </div>
+        {/* Action toolbar — revealed on hover/focus */}
+        {isAuthenticated && (
+          <div
+            className="verse-actions"
+            role="toolbar"
+            aria-label={`Actions for verse ${verseNum}`}
+            style={{
+              position: 'absolute',
+              right: -2,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 1,
+              background: 'var(--bg2)',
+              border: '1px solid var(--faint2)',
+              borderRadius: 8,
+              padding: '3px 2px',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.45)',
+              opacity: 0,
+              pointerEvents: 'none',
+              transition: 'opacity 0.15s',
+              zIndex: 10,
+            }}
+          >
+            <ToolbarButton label="Highlight" onClick={() => setShowPicker((s) => !s)} active={highlighted}>
+              <IconHighlighter />
+            </ToolbarButton>
+            <ToolbarButton label="Add note" onClick={handleNote}>
+              <IconNote />
+            </ToolbarButton>
+            <ToolbarButton label={saved ? 'Saved!' : 'Save verse'} onClick={handleSave} active={saved}>
+              {saved ? <IconCheck /> : <IconBookmark />}
+            </ToolbarButton>
+            <ToolbarButton label={copied ? 'Copied!' : 'Copy verse'} onClick={handleCopy} active={copied}>
+              {copied ? <IconCheck /> : <IconCopy />}
+            </ToolbarButton>
+            <ToolbarButton label="Ask AI about this verse" onClick={handleAskAI}>
+              <IconSparkles />
+            </ToolbarButton>
+          </div>
+        )}
+
+        {/* Color picker popover */}
+        {showPicker && (
+          <div style={{ position: 'absolute', right: 40, top: 0, zIndex: 20 }}>
+            <ColorPicker
+              onSelect={handleHighlight}
+              onRemove={handleRemove}
+              onClose={() => setShowPicker(false)}
+              currentColor={color}
+            />
+          </div>
+        )}
+
+        <style>{`
+          .verse-block:hover .verse-actions,
+          .verse-block:focus-within .verse-actions {
+            opacity: 1 !important;
+            pointer-events: auto !important;
+          }
+        `}</style>
+      </div>
+
+      {/* Study panel — rendered outside the verse row so it can be fixed-position */}
+      {showStudyPanel && (
+        <StudyPanel
+          bookName={bookName}
+          bookSlug={book}
+          chapter={chapter}
+          verse={verseNum}
+          verseText={text}
+          isAuthenticated={isAuthenticated}
+          triggerRef={verseNumRef}
+          onClose={() => setShowStudyPanel(false)}
+        />
       )}
-
-      {/* Color picker popover */}
-      {showPicker && (
-        <div style={{ position: 'absolute', right: 40, top: 0, zIndex: 20 }}>
-          <ColorPicker
-            onSelect={handleHighlight}
-            onRemove={handleRemove}
-            onClose={() => setShowPicker(false)}
-            currentColor={color}
-          />
-        </div>
-      )}
-
-      <style>{`
-        .verse-block:hover .verse-actions,
-        .verse-block:focus-within .verse-actions {
-          opacity: 1 !important;
-          pointer-events: auto !important;
-        }
-      `}</style>
-    </div>
+    </>
   );
 }
 
