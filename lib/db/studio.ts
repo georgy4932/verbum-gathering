@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Teaching, TeachingSeries, TeachingWithSeries } from "@/lib/types/domain";
 
 export async function getPublishedTeachings(): Promise<Teaching[]> {
@@ -27,6 +28,34 @@ export async function getPublishedSeries(): Promise<TeachingSeries[]> {
     .from("teaching_series")
     .select("*")
     .eq("is_published", true)
+    .order("created_at", { ascending: false });
+  return (data ?? []) as TeachingSeries[];
+}
+
+// Returns the teaching regardless of published state (for minister editing their own drafts).
+// Must be called from a server context with a user-aware client.
+export async function getTeachingBySlugForEdit(
+  slug: string,
+  userId: string
+): Promise<TeachingWithSeries | null> {
+  const serverSupabase = await createSupabaseServerClient();
+  const { data } = await serverSupabase
+    .from("teachings")
+    .select("*, series:teaching_series(*)")
+    .eq("slug", slug)
+    .eq("minister_id", userId)
+    .maybeSingle();
+  if (!data) return null;
+  const raw = data as unknown as Teaching & { series: TeachingSeries | null };
+  return { ...raw, series: raw.series ?? null };
+}
+
+export async function getMinisterSeries(userId: string): Promise<TeachingSeries[]> {
+  const serverSupabase = await createSupabaseServerClient();
+  const { data } = await serverSupabase
+    .from("teaching_series")
+    .select("*")
+    .eq("minister_id", userId)
     .order("created_at", { ascending: false });
   return (data ?? []) as TeachingSeries[];
 }
