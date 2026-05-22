@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getPublishedWorshipSets, getPublishedPractices } from "@/lib/db/worship";
 
 export const metadata = {
@@ -14,6 +15,16 @@ export default async function WorshipPage() {
     getPublishedPractices(),
   ]);
 
+  const serverSupabase = await createSupabaseServerClient();
+  const { data: { user } } = await serverSupabase.auth.getUser();
+  let isMinister = false;
+  if (user) {
+    const { data: roleRow } = await serverSupabase
+      .from("user_roles").select("role").eq("id", user.id).maybeSingle();
+    const role = roleRow?.role ?? "member";
+    isMinister = ["minister", "admin"].includes(role);
+  }
+
   return (
     <main style={{ padding: "0 1.25rem 4rem" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
@@ -22,6 +33,11 @@ export default async function WorshipPage() {
           <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.4em", textTransform: "uppercase", color: "var(--worship)", display: "block", marginBottom: 14 }}>
             Worship — The Word embodied
           </span>
+          {isMinister && (
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 24 }}>
+              <Link href="/worship/new" className="button primary">+ New worship set</Link>
+            </div>
+          )}
           <h1 style={{ fontSize: "clamp(2rem, 5vw, 3.6rem)", marginBottom: 16 }}>
             Truth becomes devotion.
           </h1>
