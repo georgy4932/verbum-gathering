@@ -63,6 +63,7 @@ export default async function PassagePage({
   const servedVersion: BibleVersion = passageData?.version ?? requestedVersion;
   const wasFallback = passageData !== null && servedVersion !== requestedVersion;
   const apiKeyMissing = !process.env.BIBLE_API_KEY;
+  const hasRedLetterContent = passageData?.verses.some((v) => v.hasRedLetter) ?? false;
 
   // Merge highlight data and structural formatting into verse list
   const verses = passageData?.verses.map((v) => ({
@@ -90,7 +91,7 @@ export default async function PassagePage({
           <span style={{ fontSize: 12, color: "var(--muted)" }}>Chapter {chapter}</span>
         </div>
 
-        {/* Reader controls — reference + version + red letter pills */}
+        {/* Reader controls — reference, verse picker, version, red letter */}
         <ReaderControls
           bookSlug={bookSlug}
           bookName={bookData.name}
@@ -98,6 +99,7 @@ export default async function PassagePage({
           currentVersion={servedVersion}
           isAuthenticated={!!user}
           showRedLetter={showRedLetter}
+          hasRedLetterContent={hasRedLetterContent}
         />
 
         {/* Soft notices */}
