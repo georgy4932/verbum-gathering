@@ -2,7 +2,7 @@
 // Docs: https://scripture.api.bible
 // Set BIBLE_API_KEY in .env.local (free tier: 2000 req/day).
 
-import { getVerseCount } from './verse-counts';
+import { getVerseCount, VERSE_COUNTS } from './verse-counts';
 
 export type BibleVersion = 'KJV' | 'NKJV' | 'NIV' | 'NLT' | 'ESV' | 'MSG' | 'TPT' | 'WEB' | 'ASV';
 
@@ -311,9 +311,14 @@ async function fetchFromApiBible(
 // ── Fallback: bible-api.com (KJV only, no API key needed) ────────────────────
 async function fetchFromBibleApiCom(bookSlug: string, chapter: number): Promise<PassageResult | null> {
   const apiParam = bookSlug.replace(/-/g, '+');
+  // bible-api.com parses "obadiah+1" as verse 1, not chapter 1, for
+  // single-chapter books (Obadiah, Philemon, 2 John, 3 John, Jude).
+  // Omit the chapter number for these books so the full chapter is returned.
+  const isSingleChapter = (VERSE_COUNTS[bookSlug]?.length ?? 2) === 1;
+  const path = isSingleChapter ? apiParam : `${apiParam}+${chapter}`;
   try {
     const res = await fetch(
-      `https://bible-api.com/${apiParam}+${chapter}?translation=kjv`,
+      `https://bible-api.com/${path}?translation=kjv`,
       { next: { revalidate: 86400 } },
     );
     if (!res.ok) return null;
