@@ -295,10 +295,16 @@ async function fetchFromApiBible(
   // First pass: JSON (structured AST with poetry/red-letter data)
   let verses = await request('json') ?? [];
 
-  // Second pass: text mode if JSON produced an incomplete result
+  // Second pass: text mode if JSON produced an incomplete result.
+  // Merge strategy: keep JSON verses (which may carry wj/red-letter data) and
+  // fill in only the gaps using text verses, so red-letter data is never lost
+  // just because a handful of verses were missing from the JSON response.
   if (!isComplete(verses, bookSlug, chapter)) {
     const textVerses = await request('text') ?? [];
-    if (textVerses.length > verses.length) verses = textVerses;
+    if (textVerses.length > verses.length) {
+      const jsonByNum = new Map(verses.map((v) => [v.verse, v]));
+      verses = textVerses.map((tv) => jsonByNum.get(tv.verse) ?? tv);
+    }
   }
 
   if (verses.length === 0) return null;
