@@ -330,7 +330,7 @@ export function StudyPanel({
           <Section title="Your Notes" open={openNotes} onToggle={() => setOpenNotes(s => !s)} id={`${uid}-notes`}>
             {!isAuthenticated ? (
               <p style={{ fontSize: 13, color: 'var(--stone)', lineHeight: 1.7 }}>
-                <Link href="/sign-in" style={{ color: 'var(--companion)' }}>Sign in</Link> to view and add notes on this verse.
+                <Link href="/auth/signin" style={{ color: 'var(--companion)' }}>Sign in</Link> to view and add notes on this verse.
               </p>
             ) : notesPending || notes === null ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--stone)', fontSize: 12 }}>
@@ -434,7 +434,7 @@ export function StudyPanel({
           <Section title="AI Companion" open={openAI} onToggle={() => setOpenAI(s => !s)} id={`${uid}-ai`}>
             {!isAuthenticated ? (
               <p style={{ fontSize: 13, color: 'var(--stone)', lineHeight: 1.7 }}>
-                <Link href="/sign-in" style={{ color: 'var(--companion)' }}>Sign in</Link> to ask the AI companion about this verse.
+                <Link href="/auth/signin" style={{ color: 'var(--companion)' }}>Sign in</Link> to ask the AI companion about this verse.
               </p>
             ) : (
               <div>

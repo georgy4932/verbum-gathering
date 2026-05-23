@@ -1,33 +1,52 @@
-import { NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { NextResponse } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
-  const code = requestUrl.searchParams.get("code");
+  const code = requestUrl.searchParams.get('code');
+  const next = requestUrl.searchParams.get('next') ?? '/';
 
   if (code) {
     const cookieStore = await cookies();
-
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet: { name: string; value: string; options: Record<string, unknown> }[]) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          },
+          getAll: () => cookieStore.getAll(),
+          setAll: (list: { name: string; value: string; options: Record<string, unknown> }[]) =>
+            list.forEach(({ name, value, options }) => cookieStore.set(name, value, options)),
         },
       }
     );
 
-    await supabase.auth.exchangeCodeForSession(code);
+    const { data: { session } } = await supabase.auth.exchangeCodeForSession(code);
+
+    if (session) {
+      // For OAuth sign-ins, ensure a profile row exists with whatever
+      // display name Google provided. The DB trigger handles this but
+      // the profile may not have a display_name if it wasn't in metadata.
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('display_name')
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+      // If the user has no display_name yet, send to onboarding.
+      // Preserve `next` so after onboarding the user reaches the intended
+      // destination (e.g. /auth/reset-password for the password-reset flow).
+      if (!profile?.display_name) {
+        const onboardingUrl = new URL('/onboarding', requestUrl.origin);
+        if (next !== '/') onboardingUrl.searchParams.set('next', next);
+        return NextResponse.redirect(onboardingUrl);
+      }
+
+      // Honour the `next` param (e.g. password-reset flow).
+      const safePath = next.startsWith('/') ? next : '/';
+      return NextResponse.redirect(new URL(safePath, requestUrl.origin));
+    }
   }
 
-  return NextResponse.redirect(new URL("/", request.url));
+  return NextResponse.redirect(new URL('/auth/signin', requestUrl.origin));
 }

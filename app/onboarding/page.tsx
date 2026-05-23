@@ -1,83 +1,120 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { supabaseBrowser } from "@/lib/supabase/browser";
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { supabaseBrowser } from '@/lib/supabase/browser';
 
-export default function OnboardingPage() {
-  const [displayName, setDisplayName] = useState("");
+function OnboardingForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [displayName, setDisplayName] = useState('');
   const [saving, setSaving] = useState(false);
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useState('');
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function load() {
+      const { data: { user } } = await supabaseBrowser.auth.getUser();
+      if (!user) { router.push('/auth/signin'); return; }
+      setUserId(user.id);
+
+      // Pre-fill if Google metadata has a name
+      const googleName = user.user_metadata?.full_name ?? user.user_metadata?.name ?? '';
+      if (googleName) setDisplayName(googleName);
+    }
+    load();
+  }, [router]);
 
   async function saveProfile() {
+    const trimmed = displayName.trim();
+    if (!trimmed || !userId) return;
     setSaving(true);
-    setNotice("");
+    setNotice('');
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabaseBrowser.auth.getUser();
-
-    if (userError || !user) {
-      setSaving(false);
-      setNotice("You need to sign in first.");
-      return;
-    }
-
-    const { error } = await supabaseBrowser.from("profiles").upsert({
-      id: user.id,
-      display_name: displayName.trim(),
-    });
+    const { error } = await supabaseBrowser.from('profiles').upsert({
+      id: userId,
+      display_name: trimmed,
+    }, { onConflict: 'id' });
 
     setSaving(false);
 
     if (error) {
-      setNotice("Unable to save your profile.");
+      setNotice('Unable to save your profile. Please try again.');
       return;
     }
 
-    window.location.href = "/";
+    // Honour any `next` param threaded through from the callback
+    // (e.g. /auth/reset-password for the password-reset flow).
+    const next = searchParams.get('next');
+    const dest = next && next.startsWith('/') ? next : '/';
+    router.push(dest);
+    router.refresh();
   }
 
   return (
-    <main style={{ padding: "4rem 1.25rem" }}>
-      <div style={{ maxWidth: 560, margin: "0 auto" }}>
-        <h1>Welcome</h1>
-        <p>What should we call you in the gathering?</p>
+    <main style={{ padding: '4rem 1.25rem 6rem' }}>
+      <div style={{ maxWidth: 480, margin: '0 auto' }}>
+        <p style={{
+          fontSize: 10, fontWeight: 700, letterSpacing: '0.4em',
+          textTransform: 'uppercase', color: 'var(--gold-lo)', marginBottom: 14,
+        }}>
+          Welcome
+        </p>
+        <h1 style={{
+          fontFamily: "'IM Fell English', serif",
+          fontSize: 'clamp(2rem, 5vw, 3rem)',
+          lineHeight: 1.05, margin: '0 0 12px', color: 'var(--cream)',
+        }}>
+          What shall we call you?
+        </h1>
+        <p style={{ fontSize: 15, color: 'var(--stone)', lineHeight: 1.75, marginBottom: 28 }}>
+          Set a display name that others will see in the gathering.
+          You can update it anytime in your profile settings.
+        </p>
 
-        <div style={{ display: "grid", gap: 12, marginTop: 20 }}>
+        <div style={{ display: 'grid', gap: 12 }}>
           <input
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="Display name"
+            onKeyDown={(e) => e.key === 'Enter' && saveProfile()}
+            placeholder="Grace Walker"
+            maxLength={60}
             style={{
-              minHeight: 46,
-              borderRadius: 12,
-              border: "1px solid rgba(255,255,255,0.12)",
-              background: "rgba(255,255,255,0.02)",
-              color: "inherit",
-              padding: "0 0.9rem",
+              minHeight: 46, borderRadius: 10,
+              border: '1px solid var(--faint)',
+              background: 'rgba(255,255,255,0.04)',
+              color: 'var(--cream)', padding: '0 14px',
+              fontSize: 15, fontFamily: "'DM Sans', sans-serif", outline: 'none',
             }}
           />
 
           <button
             type="button"
             onClick={saveProfile}
-            disabled={saving || displayName.trim().length < 2}
+            disabled={saving || displayName.trim().length < 1}
             style={{
-              minHeight: 44,
-              borderRadius: 999,
-              border: "1px solid rgba(255,255,255,0.12)",
-              background: "rgba(255,255,255,0.06)",
-              color: "inherit",
-              cursor: "pointer",
+              minHeight: 46, borderRadius: 999, border: 'none',
+              background: 'var(--gold)', color: 'var(--bg)',
+              fontSize: 14, fontWeight: 700, letterSpacing: '0.05em',
+              cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
             }}
           >
-            {saving ? "Saving..." : "Continue"}
+            {saving ? 'Saving…' : 'Continue'}
           </button>
 
-          {notice ? <p>{notice}</p> : null}
+          {notice && (
+            <p style={{ fontSize: 14, color: '#c07060', margin: 0, lineHeight: 1.6 }}>{notice}</p>
+          )}
         </div>
       </div>
     </main>
+  );
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense>
+      <OnboardingForm />
+    </Suspense>
   );
 }
