@@ -62,7 +62,9 @@ export default async function PassagePage({
 
   const servedVersion: BibleVersion = passageData?.version ?? requestedVersion;
   const wasFallback = passageData !== null && servedVersion !== requestedVersion;
-  const apiKeyMissing = !process.env.BIBLE_API_KEY;
+  if (process.env.NODE_ENV === 'development' && !process.env.BIBLE_API_KEY) {
+    console.warn('[Companion] BIBLE_API_KEY not set — only KJV via bible-api.com is available.');
+  }
   const hasRedLetterContent = passageData?.verses.some((v) => v.hasRedLetter) ?? false;
 
   // Merge highlight data and structural formatting into verse list
@@ -106,11 +108,6 @@ export default async function PassagePage({
         {wasFallback && (
           <p style={{ fontSize: 12, color: "var(--stone)", marginBottom: 20, fontStyle: "italic", opacity: 0.75 }}>
             {requestedVersion} is not yet available — showing {servedVersion}.
-          </p>
-        )}
-        {apiKeyMissing && requestedVersion === 'KJV' && (
-          <p style={{ fontSize: 11, color: "var(--stone)", marginBottom: 20, opacity: 0.5 }}>
-            Set BIBLE_API_KEY in .env.local to unlock all translations.
           </p>
         )}
 
