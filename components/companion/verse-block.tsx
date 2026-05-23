@@ -3,7 +3,7 @@
 import { useState, useTransition, useCallback, useRef } from 'react';
 import { ColorPicker, HIGHLIGHT_COLORS } from './color-picker';
 import { StudyPanel } from './study-panel';
-import { addHighlight, removeHighlight, savePassage } from '@/app/actions/companion';
+import { addHighlight, removeHighlight, savePassage, unsavePassage } from '@/app/actions/companion';
 
 // ── Inline SVG icons ──────────────────────────────────────────────────────────
 function IconHighlighter() {
@@ -23,6 +23,13 @@ function IconNote() {
 function IconBookmark() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
+    </svg>
+  );
+}
+function IconBookmarkFilled() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
     </svg>
   );
@@ -68,8 +75,8 @@ const COLOR_BORDER: Record<string, string> = {
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 export interface VerseBlockProps {
-  book: string;       // slug, e.g. "john"
-  bookName: string;   // display name, e.g. "John"
+  book: string;
+  bookName: string;
   chapter: number;
   verseNum: number;
   text: string;
@@ -93,44 +100,48 @@ export function VerseBlock({
   const [showPicker, setShowPicker] = useState(false);
   const [showStudyPanel, setShowStudyPanel] = useState(false);
   const [panelAutoFocusNotes, setPanelAutoFocusNotes] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [panelAutoFocusAI, setPanelAutoFocusAI] = useState(false);
+  // isSaved: persistent state (filled bookmark icon stays gold)
+  // saveFlash: 2-second checkmark flash after save
+  const [isSaved, setIsSaved] = useState(false);
+  const [saveFlash, setSaveFlash] = useState(false);
   const [copied, setCopied] = useState(false);
   const [, startTransition] = useTransition();
   const verseNumRef = useRef<HTMLButtonElement>(null);
 
-  // Highlight
+  // ── Highlight ──
   const handleHighlight = useCallback((newColor: string) => {
     setColor(newColor);
     setShowPicker(false);
-    startTransition(async () => {
-      await addHighlight(passageRef, newColor);
-    });
+    startTransition(async () => { await addHighlight(passageRef, newColor); });
   }, [passageRef]);
 
   const handleRemove = useCallback(() => {
     setColor(undefined);
     setShowPicker(false);
-    startTransition(async () => {
-      await removeHighlight(passageRef);
-    });
+    startTransition(async () => { await removeHighlight(passageRef); });
   }, [passageRef]);
 
-  // Note — open study panel focused on notes
+  // ── Note — open study panel focused on notes ──
   const handleNote = useCallback(() => {
     setPanelAutoFocusNotes(true);
     setShowStudyPanel(true);
   }, []);
 
-  // Save verse
+  // ── Save / unsave toggle ──
   const handleSave = useCallback(() => {
-    setSaved(true);
-    startTransition(async () => {
-      await savePassage(passageRef);
-    });
-    setTimeout(() => setSaved(false), 2000);
-  }, [passageRef]);
+    if (isSaved) {
+      setIsSaved(false);
+      startTransition(async () => { await unsavePassage(passageRef); });
+    } else {
+      setIsSaved(true);
+      setSaveFlash(true);
+      setTimeout(() => setSaveFlash(false), 2000);
+      startTransition(async () => { await savePassage(passageRef); });
+    }
+  }, [isSaved, passageRef]);
 
-  // Copy
+  // ── Copy ──
   const handleCopy = useCallback(async () => {
     const copyText = `${passageRef} — ${text} (${translation})`;
     try {
@@ -148,19 +159,24 @@ export function VerseBlock({
     setTimeout(() => setCopied(false), 1800);
   }, [passageRef, text, translation]);
 
-  // Ask AI
+  // ── AI — open study panel focused on AI companion ──
   const handleAskAI = useCallback(() => {
-    const el = document.getElementById('ai-companion');
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    window.dispatchEvent(new CustomEvent('verse:askAI', {
-      detail: { passageRef, verseText: text, prompt: `Help me understand ${passageRef}: "${text}"` },
-    }));
-  }, [passageRef, text]);
+    setPanelAutoFocusAI(true);
+    setShowStudyPanel(true);
+  }, []);
+
+  const closePanel = useCallback(() => {
+    setShowStudyPanel(false);
+    setPanelAutoFocusNotes(false);
+    setPanelAutoFocusAI(false);
+  }, []);
 
   const highlighted = !!color;
-  const colorLabel = color
-    ? (HIGHLIGHT_COLORS.find((c) => c.value === color)?.label ?? color)
-    : undefined;
+  const colorLabel = color ? (HIGHLIGHT_COLORS.find((c) => c.value === color)?.label ?? color) : undefined;
+
+  // Bookmark button state
+  const saveLabel = saveFlash ? 'Saved!' : isSaved ? 'Saved — click to unsave' : 'Save verse';
+  const saveActive = isSaved || saveFlash;
 
   return (
     <>
@@ -169,9 +185,7 @@ export function VerseBlock({
         data-verse={verseNum}
         style={{
           position: 'relative',
-          borderLeft: highlighted
-            ? `3px solid ${COLOR_BORDER[color!]}`
-            : '3px solid transparent',
+          borderLeft: highlighted ? `3px solid ${COLOR_BORDER[color!]}` : '3px solid transparent',
           background: highlighted ? COLOR_BG[color!] : 'transparent',
           borderRadius: highlighted ? '0 6px 6px 0' : undefined,
           paddingLeft: highlighted ? 10 : 13,
@@ -184,14 +198,7 @@ export function VerseBlock({
         aria-label={highlighted ? `Verse ${verseNum}, highlighted as ${colorLabel}` : undefined}
       >
         {/* Verse text */}
-        <p style={{
-          fontFamily: "'IM Fell English', serif",
-          fontSize: '1.2rem',
-          lineHeight: 2.1,
-          color: 'var(--cream)',
-          margin: 0,
-        }}>
-          {/* Tappable verse number — opens study panel */}
+        <p style={{ fontFamily: "'IM Fell English', serif", fontSize: '1.2rem', lineHeight: 2.1, color: 'var(--cream)', margin: 0 }}>
           <button
             ref={verseNumRef}
             onClick={() => setShowStudyPanel(true)}
@@ -220,7 +227,7 @@ export function VerseBlock({
           {text}
         </p>
 
-        {/* Action toolbar — revealed on hover/focus */}
+        {/* Action toolbar */}
         {isAuthenticated && (
           <div
             className="verse-actions"
@@ -251,8 +258,14 @@ export function VerseBlock({
             <ToolbarButton label="Add note" onClick={handleNote}>
               <IconNote />
             </ToolbarButton>
-            <ToolbarButton label={saved ? 'Saved!' : 'Save verse'} onClick={handleSave} active={saved}>
-              {saved ? <IconCheck /> : <IconBookmark />}
+            {/* Bookmark: gold fill when saved, checkmark flash after saving */}
+            <ToolbarButton
+              label={saveLabel}
+              onClick={handleSave}
+              active={saveActive}
+              activeColor={isSaved ? 'var(--gold)' : undefined}
+            >
+              {saveFlash ? <IconCheck /> : isSaved ? <IconBookmarkFilled /> : <IconBookmark />}
             </ToolbarButton>
             <ToolbarButton label={copied ? 'Copied!' : 'Copy verse'} onClick={handleCopy} active={copied}>
               {copied ? <IconCheck /> : <IconCopy />}
@@ -284,7 +297,6 @@ export function VerseBlock({
         `}</style>
       </div>
 
-      {/* Study panel — rendered outside the verse row so it can be fixed-position */}
       {showStudyPanel && (
         <StudyPanel
           bookName={bookName}
@@ -294,8 +306,9 @@ export function VerseBlock({
           verseText={text}
           isAuthenticated={isAuthenticated}
           autoFocusNotes={panelAutoFocusNotes}
+          autoFocusAI={panelAutoFocusAI}
           triggerRef={verseNumRef}
-          onClose={() => { setShowStudyPanel(false); setPanelAutoFocusNotes(false); }}
+          onClose={closePanel}
         />
       )}
     </>
@@ -307,13 +320,17 @@ function ToolbarButton({
   label,
   onClick,
   active,
+  activeColor,
   children,
 }: {
   label: string;
   onClick: () => void;
   active?: boolean;
+  activeColor?: string;
   children: React.ReactNode;
 }) {
+  const activeBg = active ? 'var(--companion-lo)' : 'transparent';
+  const activeTextColor = activeColor ?? 'var(--companion)';
   return (
     <button
       onClick={onClick}
@@ -329,8 +346,8 @@ function ToolbarButton({
         minHeight: 32,
         borderRadius: 6,
         border: 'none',
-        background: active ? 'var(--companion-lo)' : 'transparent',
-        color: active ? 'var(--companion)' : 'var(--stone)',
+        background: activeBg,
+        color: active ? activeTextColor : 'var(--stone)',
         cursor: 'pointer',
         transition: 'background 0.12s, color 0.12s',
       }}
@@ -341,8 +358,8 @@ function ToolbarButton({
         }
       }}
       onMouseOut={(e) => {
-        e.currentTarget.style.background = active ? 'var(--companion-lo)' : 'transparent';
-        e.currentTarget.style.color = active ? 'var(--companion)' : 'var(--stone)';
+        e.currentTarget.style.background = activeBg;
+        e.currentTarget.style.color = active ? activeTextColor : 'var(--stone)';
       }}
     >
       {children}
