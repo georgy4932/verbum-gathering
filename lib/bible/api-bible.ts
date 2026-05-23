@@ -311,11 +311,13 @@ async function fetchFromApiBible(
 // ── Fallback: bible-api.com (KJV only, no API key needed) ────────────────────
 async function fetchFromBibleApiCom(bookSlug: string, chapter: number): Promise<PassageResult | null> {
   const apiParam = bookSlug.replace(/-/g, '+');
-  // bible-api.com parses "obadiah+1" as verse 1, not chapter 1, for
-  // single-chapter books (Obadiah, Philemon, 2 John, 3 John, Jude).
-  // Omit the chapter number for these books so the full chapter is returned.
+  // bible-api.com parses /obadiah+1 as "verse 1" not "chapter 1" for
+  // single-chapter books. Use the explicit chapter:verse-range format so
+  // the 1 is unambiguous as a chapter number: /obadiah+1:1-200
   const isSingleChapter = (VERSE_COUNTS[bookSlug]?.length ?? 2) === 1;
-  const path = isSingleChapter ? apiParam : `${apiParam}+${chapter}`;
+  const path = isSingleChapter
+    ? `${apiParam}+1:1-200`
+    : `${apiParam}+${chapter}`;
   try {
     const res = await fetch(
       `https://bible-api.com/${path}?translation=kjv`,
