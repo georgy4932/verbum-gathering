@@ -8,7 +8,7 @@ import { getHighlightsForChapter } from "@/app/actions/companion";
 import NoteEditor from "@/components/companion/note-editor";
 import AICompanion from "@/components/companion/ai-companion";
 import SavePassageButton from "./save-passage-button";
-import TranslationSelector from "@/components/companion/translation-selector";
+import { ReaderControls } from "@/components/companion/reader-controls";
 import PassageText from "@/components/companion/passage-text";
 
 export const dynamic = "force-dynamic";
@@ -83,21 +83,14 @@ export default async function PassagePage({
           <span style={{ fontSize: 12, color: "var(--muted)" }}>Chapter {chapter}</span>
         </div>
 
-        {/* Title row + translation selector */}
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, marginBottom: 28, flexWrap: "wrap" }}>
-          <h1 style={{
-            fontFamily: "'IM Fell English', serif",
-            fontSize: "clamp(2rem, 5vw, 3.4rem)",
-            lineHeight: 1.05,
-            letterSpacing: "0.01em",
-            margin: 0,
-          }}>
-            {passageRef}
-          </h1>
-          <div style={{ paddingTop: 10, flexShrink: 0 }}>
-            <TranslationSelector current={servedVersion} isAuthenticated={!!user} />
-          </div>
-        </div>
+        {/* Reader controls — reference + version pills */}
+        <ReaderControls
+          bookSlug={bookSlug}
+          bookName={bookData.name}
+          chapter={chapter}
+          currentVersion={servedVersion}
+          isAuthenticated={!!user}
+        />
 
         {/* Soft notices */}
         {wasFallback && (
