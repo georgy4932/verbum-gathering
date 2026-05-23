@@ -165,7 +165,7 @@ export default async function PassagePage({
           {user ? (
             <SavePassageButton passageRef={passageRef} initialSaved={isSaved} />
           ) : (
-            <Link href="/sign-in" style={{ fontSize: 12, color: "var(--stone)" }}>
+            <Link href="/auth/signin" style={{ fontSize: 12, color: "var(--stone)" }}>
               Sign in to save →
             </Link>
           )}
@@ -178,7 +178,7 @@ export default async function PassagePage({
           ) : (
             <div style={{ borderTop: "1px solid var(--faint)", paddingTop: 32 }}>
               <p style={{ fontSize: 14, color: "var(--stone)", lineHeight: 1.7 }}>
-                <Link href="/sign-in" style={{ color: "var(--companion)" }}>Sign in</Link>
+                <Link href="/auth/signin" style={{ color: "var(--companion)" }}>Sign in</Link>
                 {" "}to write reflections on this passage.
               </p>
             </div>

@@ -67,7 +67,7 @@ export default async function HomePage() {
               <p style={{ margin: "0 0 10px", color: "var(--stone)", lineHeight: 1.7, fontSize: 14 }}>
                 To read with notes, join gatherings, and carry Scripture with you — sign in quietly.
               </p>
-              <Link href="/sign-in" className="text-link">
+              <Link href="/auth/signin" className="text-link">
                 Sign in →
               </Link>
             </div>
