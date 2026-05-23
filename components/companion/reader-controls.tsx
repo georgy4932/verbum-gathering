@@ -68,10 +68,6 @@ export function ReaderControls({
     window.dispatchEvent(new CustomEvent('red-letter-toggle', { detail: { enabled: next } }));
   }
 
-  const redLetterTooltip = hasRedLetterContent
-    ? (redLetter ? 'Red letter on — tap to hide' : 'Red letter off — tap to show')
-    : 'No red letter in this passage — try NIV or NLT';
-
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 28, flexWrap: 'wrap' }}>
 
@@ -187,28 +183,27 @@ export function ReaderControls({
         )}
       </div>
 
-      {/* Red letter toggle — only for authenticated users */}
-      {isAuthenticated && (
+      {/* Red letter toggle — only when authenticated AND passage has wj data */}
+      {isAuthenticated && hasRedLetterContent && (
         <button
-          onClick={hasRedLetterContent ? toggleRedLetter : undefined}
-          aria-label={redLetterTooltip}
-          title={redLetterTooltip}
+          onClick={toggleRedLetter}
+          aria-label={redLetter ? 'Red letter on — tap to hide' : 'Red letter off — tap to show'}
+          title={redLetter ? 'Red letter on' : 'Red letter off'}
           style={{
             display: 'flex', alignItems: 'center', gap: 5,
-            background: (redLetter && hasRedLetterContent) ? 'rgba(192,112,96,0.12)' : 'rgba(255,255,255,0.03)',
-            border: `1px solid ${(redLetter && hasRedLetterContent) ? 'rgba(192,112,96,0.32)' : 'var(--faint)'}`,
+            background: redLetter ? 'rgba(192,112,96,0.12)' : 'rgba(255,255,255,0.03)',
+            border: `1px solid ${redLetter ? 'rgba(192,112,96,0.32)' : 'var(--faint)'}`,
             borderRadius: 20,
             padding: '5px 10px',
-            cursor: hasRedLetterContent ? 'pointer' : 'default',
+            cursor: 'pointer',
             fontSize: 11, fontWeight: 600, letterSpacing: '0.06em',
-            color: (redLetter && hasRedLetterContent) ? 'var(--jesus)' : 'var(--stone)',
+            color: redLetter ? 'var(--jesus)' : 'var(--stone)',
             fontFamily: "'DM Sans', sans-serif",
             transition: 'background 0.1s, border-color 0.1s, color 0.1s',
             alignSelf: 'center',
-            opacity: hasRedLetterContent ? 1 : 0.45,
           }}
         >
-          <RedLetterDot active={redLetter && hasRedLetterContent} />
+          <RedLetterDot active={redLetter} />
           Red Letter
         </button>
       )}
