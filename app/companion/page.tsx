@@ -2,12 +2,14 @@ import Link from 'next/link';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { TodayCard } from '@/components/companion/today-card';
 import { getReflectionForPlanDay, getRecentReflections } from '@/app/actions/reflections';
+import { getNotificationPreferences } from '@/app/actions/notifications';
+import { ReminderNudge } from '@/components/companion/reminder-nudge';
 import type { ActivePlan } from '@/app/actions/plans';
 import type { UserReflection } from '@/app/actions/reflections';
 
 export const metadata = {
   title: 'Companion — VerbumScribe',
-  description: 'Read Scripture. Reflect. Study with an AI companion that serves the text.',
+  description: 'Read Scripture. Reflect. Study with an intelligent companion that serves the text.',
 };
 
 export const dynamic = 'force-dynamic';
@@ -16,6 +18,25 @@ function formatReflectionDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', {
     month: 'short', day: 'numeric',
   });
+}
+
+function isPastReminderTime(reminderTime: string, timezone: string): boolean {
+  try {
+    const now = new Date();
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: false,
+    }).formatToParts(now);
+    const h = parseInt(parts.find((p) => p.type === 'hour')?.value ?? '0', 10);
+    const m = parseInt(parts.find((p) => p.type === 'minute')?.value ?? '0', 10);
+    const nowMinutes = h * 60 + m;
+    const [rh, rm] = reminderTime.split(':').map(Number);
+    return nowMinutes >= rh * 60 + rm;
+  } catch {
+    return false;
+  }
 }
 
 export default async function CompanionPage() {
@@ -37,18 +58,32 @@ export default async function CompanionPage() {
     activePlan = data as ActivePlan | null;
   }
 
-  // Fetch reflection data in parallel — only when a user and active plan exist.
+  // Fetch reflection, notification prefs in parallel — only when logged in.
   let todayReflection: UserReflection | null = null;
   let recentReflections: UserReflection[] = [];
+  let showNudge = false;
+  let nudgePhraseIndex = 0;
 
   if (user) {
-    const reflectionFetches: [Promise<UserReflection | null>, Promise<UserReflection[]>] = [
+    const [reflResult, recentResult, notifPrefs] = await Promise.all([
       activePlan
         ? getReflectionForPlanDay(activePlan.plan_id, activePlan.current_day)
         : Promise.resolve(null),
       getRecentReflections(3),
-    ];
-    [todayReflection, recentReflections] = await Promise.all(reflectionFetches);
+      getNotificationPreferences(),
+    ]);
+    todayReflection = reflResult;
+    recentReflections = recentResult;
+
+    if (
+      notifPrefs?.reminders_enabled &&
+      activePlan &&
+      !todayReflection &&
+      isPastReminderTime(notifPrefs.reminder_time, notifPrefs.timezone)
+    ) {
+      showNudge = true;
+      nudgePhraseIndex = activePlan.current_day % 4;
+    }
   }
 
   return (
@@ -63,10 +98,15 @@ export default async function CompanionPage() {
             The Word, open before you.
           </h1>
           <p className="subtitle">
-            Read Scripture. Reflect on what you find. Ask questions. Study with an AI companion
+            Read Scripture. Reflect on what you find. Ask questions. Study with an intelligent companion
             that serves the text — and never replaces it.
           </p>
         </div>
+
+        {/* Quiet reminder nudge — only when reminders enabled + past reminder time + no reflection yet */}
+        {showNudge && activePlan && (
+          <ReminderNudge activePlan={activePlan} phraseIndex={nudgePhraseIndex} />
+        )}
 
         {/* Today's Reading — shown only when enrolled in a plan */}
         {activePlan && (
@@ -175,7 +215,7 @@ export default async function CompanionPage() {
           </div>
         )}
 
-        {/* Formation posture reminder */}
+        {/* Formation posture reminder + settings link */}
         <div style={{ borderTop: '1px solid var(--faint)', paddingTop: 32, maxWidth: 640 }}>
           <p style={{
             fontFamily: "'IM Fell English', serif", fontStyle: 'italic',
@@ -189,6 +229,14 @@ export default async function CompanionPage() {
           }}>
             Psalm 119:105
           </span>
+          {user && (
+            <Link
+              href="/companion/settings"
+              style={{ display: 'inline-block', marginTop: 20, fontSize: 12, color: 'var(--stone)', opacity: 0.5, textDecoration: 'none' }}
+            >
+              Reminder settings →
+            </Link>
+          )}
         </div>
 
       </div>

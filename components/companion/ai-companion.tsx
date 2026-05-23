@@ -65,7 +65,7 @@ export default function AICompanion({
       if (res.status === 503 && data.error === "companion_unavailable") {
         setMessages((prev) => [
           ...prev,
-          { role: "assistant", content: "The AI companion is not available in this environment. You can still read, reflect, and write notes on this passage." },
+          { role: "assistant", content: "The companion is not available in this environment. You can still read, reflect, and write notes on this passage." },
         ]);
       } else if (!res.ok) {
         throw new Error(data.error ?? "Response error");

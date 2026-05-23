@@ -303,7 +303,7 @@ export function VerseBlock({
             <ToolbarButton label={copied ? 'Copied!' : 'Copy verse'} onClick={handleCopy} active={copied}>
               {copied ? <IconCheck /> : <IconCopy />}
             </ToolbarButton>
-            <ToolbarButton label="Ask AI about this verse" onClick={handleAskAI}>
+            <ToolbarButton label="Ask the companion" onClick={handleAskAI}>
               <IconSparkles />
             </ToolbarButton>
           </div>
