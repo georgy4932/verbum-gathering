@@ -181,6 +181,7 @@ export function VerseBlock({
   return (
     <>
       <div
+        id={`verse-${verseNum}`}
         className="verse-block group"
         data-verse={verseNum}
         style={{
@@ -193,6 +194,7 @@ export function VerseBlock({
           paddingTop: 4,
           paddingBottom: 4,
           marginBottom: 2,
+          scrollMarginTop: 80,
           transition: 'background 0.2s, border-color 0.2s',
         }}
         aria-label={highlighted ? `Verse ${verseNum}, highlighted as ${colorLabel}` : undefined}
@@ -293,6 +295,15 @@ export function VerseBlock({
           .verse-block:focus-within .verse-actions {
             opacity: 1 !important;
             pointer-events: auto !important;
+          }
+          @keyframes verse-arrive {
+            0%   { box-shadow: inset 3px 0 0 rgba(200,169,106,0.9),  0 0 28px rgba(200,169,106,0.08); }
+            35%  { box-shadow: inset 3px 0 0 rgba(200,169,106,0.55), 0 0 12px rgba(200,169,106,0.04); }
+            100% { box-shadow: none; }
+          }
+          .verse-block:target,
+          .verse-block.verse-arrived {
+            animation: verse-arrive 2.4s cubic-bezier(0.4,0,0.6,1) forwards;
           }
         `}</style>
       </div>

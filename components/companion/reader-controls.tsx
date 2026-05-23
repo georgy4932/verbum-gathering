@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { BibleVersion } from '@/lib/bible/api-bible';
 import { VersionPopover } from './version-popover';
 import { BibleNavigator } from './bible-navigator';
@@ -16,6 +16,27 @@ interface ReaderControlsProps {
 export function ReaderControls({ bookSlug, bookName, chapter, currentVersion, isAuthenticated }: ReaderControlsProps) {
   const [showNavigator, setShowNavigator] = useState(false);
   const [showVersionPicker, setShowVersionPicker] = useState(false);
+  const [currentVerse, setCurrentVerse] = useState<number | undefined>(undefined);
+
+  // Pick up the verse from the URL hash, and from same-page scroll events
+  useEffect(() => {
+    function readHash() {
+      const m = window.location.hash.match(/^#verse-(\d+)$/);
+      setCurrentVerse(m ? parseInt(m[1], 10) : undefined);
+    }
+    function onVerseNavigate(e: Event) {
+      setCurrentVerse((e as CustomEvent<{ verse: number }>).detail.verse);
+    }
+    readHash();
+    window.addEventListener('hashchange', readHash);
+    window.addEventListener('popstate', readHash);
+    window.addEventListener('verse-navigate', onVerseNavigate);
+    return () => {
+      window.removeEventListener('hashchange', readHash);
+      window.removeEventListener('popstate', readHash);
+      window.removeEventListener('verse-navigate', onVerseNavigate);
+    };
+  }, []);
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 28, flexWrap: 'wrap' }}>
@@ -38,13 +59,15 @@ export function ReaderControls({ bookSlug, bookName, chapter, currentVersion, is
           lineHeight: 1.05,
           letterSpacing: '0.01em',
           color: 'var(--cream)',
-          transition: 'color 0.12s',
         }}
-        onMouseOver={(e) => { e.currentTarget.style.color = 'var(--cream)'; (e.currentTarget.querySelector('.nav-chevron') as HTMLElement | null)?.style.setProperty('color', 'var(--muted)'); }}
-        onMouseOut={(e) => { e.currentTarget.style.color = 'var(--cream)'; (e.currentTarget.querySelector('.nav-chevron') as HTMLElement | null)?.style.setProperty('color', 'var(--stone)'); }}
       >
         {bookName} {chapter}
-        <span className="nav-chevron" style={{ display: 'inline-flex', alignItems: 'center', transition: 'color 0.12s', color: 'var(--stone)', verticalAlign: 'middle', lineHeight: 0 }}>
+        {currentVerse && (
+          <span style={{ fontSize: 'clamp(1rem, 2.5vw, 1.6rem)', color: 'var(--stone)', fontVariantNumeric: 'tabular-nums' }}>
+            :{currentVerse}
+          </span>
+        )}
+        <span style={{ display: 'inline-flex', alignItems: 'center', color: 'var(--stone)', verticalAlign: 'middle', lineHeight: 0 }}>
           <ChevronIcon size={20} />
         </span>
       </button>
@@ -92,6 +115,7 @@ export function ReaderControls({ bookSlug, bookName, chapter, currentVersion, is
         <BibleNavigator
           currentBook={bookSlug}
           currentChapter={chapter}
+          currentVerse={currentVerse}
           currentVersion={currentVersion}
           onClose={() => setShowNavigator(false)}
         />
