@@ -73,7 +73,7 @@ function SignInForm() {
         <p style={eyebrowStyle}>Sign in</p>
         <h1 style={headingStyle}>Enter quietly.</h1>
         <p style={subtitleStyle}>
-          Access your Scripture notes, AI companion, gatherings, and more.
+          Access your Scripture notes, companion, gatherings, and more.
         </p>
 
         {notice && (

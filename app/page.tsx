@@ -93,7 +93,7 @@ export default async function HomePage() {
             <Link href="/companion" className="movement-card companion">
               <span className="movement-label">Companion</span>
               <h2>The Word interpreted</h2>
-              <p>Read Scripture. Reflect. Ask questions. Study with an AI companion that serves the text, never replaces it.</p>
+              <p>Read Scripture. Reflect. Ask questions. Study with an intelligent companion that serves the text — and never replaces it.</p>
               <span className="enter">Open a passage →</span>
             </Link>
 

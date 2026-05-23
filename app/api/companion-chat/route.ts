@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
   const client = getClient();
   if (!client) {
     return NextResponse.json(
-      { error: "companion_unavailable", message: "The AI companion is not configured on this server." },
+      { error: "companion_unavailable", message: "The companion is not configured on this server." },
       { status: 503 }
     );
   }

@@ -242,7 +242,7 @@ export function StudyPanel({
       });
       const data = await res.json();
       if (res.status === 503 && data.error === 'companion_unavailable') {
-        setAiMessages((prev) => [...prev, { role: 'assistant', content: 'The AI companion is not configured. You can still read your notes and cross-references.' }]);
+        setAiMessages((prev) => [...prev, { role: 'assistant', content: 'The companion is not configured. You can still read your notes and cross-references.' }]);
       } else if (!res.ok) {
         throw new Error(data.error ?? 'Response error');
       } else {
@@ -431,10 +431,10 @@ export function StudyPanel({
           </Section>
 
           {/* ── AI Companion ── */}
-          <Section title="AI Companion" open={openAI} onToggle={() => setOpenAI(s => !s)} id={`${uid}-ai`}>
+          <Section title="Companion" open={openAI} onToggle={() => setOpenAI(s => !s)} id={`${uid}-ai`}>
             {!isAuthenticated ? (
               <p style={{ fontSize: 13, color: 'var(--stone)', lineHeight: 1.7 }}>
-                <Link href="/auth/signin" style={{ color: 'var(--companion)' }}>Sign in</Link> to ask the AI companion about this verse.
+                <Link href="/auth/signin" style={{ color: 'var(--companion)' }}>Sign in</Link> to ask the companion about this verse.
               </p>
             ) : (
               <div>
