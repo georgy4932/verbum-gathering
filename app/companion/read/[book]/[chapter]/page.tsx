@@ -9,6 +9,7 @@ import NoteEditor from "@/components/companion/note-editor";
 import AICompanion from "@/components/companion/ai-companion";
 import SavePassageButton from "./save-passage-button";
 import { ReaderControls } from "@/components/companion/reader-controls";
+import { RedLetterController } from "@/components/companion/red-letter-controller";
 import PassageText from "@/components/companion/passage-text";
 
 export const dynamic = "force-dynamic";
@@ -43,7 +44,9 @@ export default async function PassagePage({
 
   // Resolve translation: URL param ?v= > profile preference > KJV
   const { user, profile } = await getCurrentUserProfile();
-  const profileVersion = (profile as { preferred_bible_version?: string } | null)?.preferred_bible_version ?? 'KJV';
+  const typedProfile = profile as { preferred_bible_version?: string; show_red_letter?: boolean } | null;
+  const profileVersion = typedProfile?.preferred_bible_version ?? 'KJV';
+  const showRedLetter = typedProfile?.show_red_letter ?? true;
   const requestedVersion: BibleVersion = isValidVersion(sp.v) ? sp.v : (isValidVersion(profileVersion) ? profileVersion : 'KJV');
 
   const passageData = await getPassageText(bookSlug, chapter, requestedVersion);
@@ -61,10 +64,14 @@ export default async function PassagePage({
   const wasFallback = passageData !== null && servedVersion !== requestedVersion;
   const apiKeyMissing = !process.env.BIBLE_API_KEY;
 
-  // Merge highlight data into verse list
+  // Merge highlight data and structural formatting into verse list
   const verses = passageData?.verses.map((v) => ({
     num: v.verse,
     text: v.text,
+    lines: v.lines,
+    isPoetry: v.isPoetry,
+    isParagraphStart: v.isParagraphStart,
+    isStanzaBreak: v.isStanzaBreak,
     highlightColor: highlightMap.get(v.verse),
   })) ?? [];
 
@@ -83,13 +90,14 @@ export default async function PassagePage({
           <span style={{ fontSize: 12, color: "var(--muted)" }}>Chapter {chapter}</span>
         </div>
 
-        {/* Reader controls — reference + version pills */}
+        {/* Reader controls — reference + version + red letter pills */}
         <ReaderControls
           bookSlug={bookSlug}
           bookName={bookData.name}
           chapter={chapter}
           currentVersion={servedVersion}
           isAuthenticated={!!user}
+          showRedLetter={showRedLetter}
         />
 
         {/* Soft notices */}
@@ -107,14 +115,16 @@ export default async function PassagePage({
         {/* Scripture — primary voice */}
         <div style={{ marginBottom: 48 }}>
           {passageData ? (
-            <PassageText
-              bookSlug={bookSlug}
-              bookName={bookData.name}
-              chapter={chapter}
-              verses={verses}
-              translation={servedVersion}
-              isAuthenticated={!!user}
-            />
+            <RedLetterController initialEnabled={showRedLetter}>
+              <PassageText
+                bookSlug={bookSlug}
+                bookName={bookData.name}
+                chapter={chapter}
+                verses={verses}
+                translation={servedVersion}
+                isAuthenticated={!!user}
+              />
+            </RedLetterController>
           ) : (
             <div style={{ padding: "32px 0" }}>
               <p style={{ color: "var(--stone)", fontStyle: "italic" }}>

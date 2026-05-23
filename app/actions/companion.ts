@@ -139,6 +139,19 @@ export async function updatePreferredVersion(version: string): Promise<ActionRes
   return { success: true };
 }
 
+export async function updateRedLetterPreference(enabled: boolean): Promise<ActionResult> {
+  const { supabase, user } = await getAuthUser();
+  if (!user) return { success: false, error: "Not authenticated." };
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ show_red_letter: enabled })
+    .eq("id", user.id);
+
+  if (error) return { success: false, error: "Could not update preference." };
+  return { success: true };
+}
+
 // ── Highlight actions ─────────────────────────────────────────────────────────
 
 const VALID_COLORS = new Set(['yellow', 'blue', 'green', 'pink', 'orange']);

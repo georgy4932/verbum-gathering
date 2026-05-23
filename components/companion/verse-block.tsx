@@ -4,6 +4,7 @@ import { useState, useTransition, useCallback, useRef } from 'react';
 import { ColorPicker, HIGHLIGHT_COLORS } from './color-picker';
 import { StudyPanel } from './study-panel';
 import { addHighlight, removeHighlight, savePassage, unsavePassage } from '@/app/actions/companion';
+import type { VerseLine } from '@/lib/bible/api-bible';
 
 // ── Inline SVG icons ──────────────────────────────────────────────────────────
 function IconHighlighter() {
@@ -73,6 +74,9 @@ const COLOR_BORDER: Record<string, string> = {
   orange: '#f97316',
 };
 
+// Poetry indentation values per level
+const INDENT: Record<number, string> = { 0: '0', 1: '1.2rem', 2: '2.4rem', 3: '3.6rem' };
+
 // ── Props ─────────────────────────────────────────────────────────────────────
 export interface VerseBlockProps {
   book: string;
@@ -80,6 +84,10 @@ export interface VerseBlockProps {
   chapter: number;
   verseNum: number;
   text: string;
+  lines: VerseLine[];
+  isPoetry: boolean;
+  isParagraphStart: boolean;
+  isStanzaBreak: boolean;
   translation: string;
   highlightColor?: string;
   isAuthenticated: boolean;
@@ -91,6 +99,10 @@ export function VerseBlock({
   chapter,
   verseNum,
   text,
+  lines,
+  isPoetry,
+  isParagraphStart,
+  isStanzaBreak,
   translation,
   highlightColor: initialColor,
   isAuthenticated,
@@ -101,8 +113,6 @@ export function VerseBlock({
   const [showStudyPanel, setShowStudyPanel] = useState(false);
   const [panelAutoFocusNotes, setPanelAutoFocusNotes] = useState(false);
   const [panelAutoFocusAI, setPanelAutoFocusAI] = useState(false);
-  // isSaved: persistent state (filled bookmark icon stays gold)
-  // saveFlash: 2-second checkmark flash after save
   const [isSaved, setIsSaved] = useState(false);
   const [saveFlash, setSaveFlash] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -122,7 +132,7 @@ export function VerseBlock({
     startTransition(async () => { await removeHighlight(passageRef); });
   }, [passageRef]);
 
-  // ── Note — open study panel focused on notes ──
+  // ── Note ──
   const handleNote = useCallback(() => {
     setPanelAutoFocusNotes(true);
     setShowStudyPanel(true);
@@ -159,7 +169,7 @@ export function VerseBlock({
     setTimeout(() => setCopied(false), 1800);
   }, [passageRef, text, translation]);
 
-  // ── AI — open study panel focused on AI companion ──
+  // ── AI ──
   const handleAskAI = useCallback(() => {
     setPanelAutoFocusAI(true);
     setShowStudyPanel(true);
@@ -173,10 +183,11 @@ export function VerseBlock({
 
   const highlighted = !!color;
   const colorLabel = color ? (HIGHLIGHT_COLORS.find((c) => c.value === color)?.label ?? color) : undefined;
-
-  // Bookmark button state
   const saveLabel = saveFlash ? 'Saved!' : isSaved ? 'Saved — click to unsave' : 'Save verse';
   const saveActive = isSaved || saveFlash;
+
+  // Extra top spacing for stanza / paragraph breaks
+  const marginTop = isStanzaBreak ? 20 : isParagraphStart ? 12 : 0;
 
   return (
     <>
@@ -193,41 +204,62 @@ export function VerseBlock({
           paddingRight: isAuthenticated ? 44 : 0,
           paddingTop: 4,
           paddingBottom: 4,
+          marginTop,
           marginBottom: 2,
           scrollMarginTop: 80,
           transition: 'background 0.2s, border-color 0.2s',
         }}
         aria-label={highlighted ? `Verse ${verseNum}, highlighted as ${colorLabel}` : undefined}
       >
-        {/* Verse text */}
-        <p style={{ fontFamily: "'IM Fell English', serif", fontSize: '1.2rem', lineHeight: 2.1, color: 'var(--cream)', margin: 0 }}>
-          <button
-            ref={verseNumRef}
-            onClick={() => setShowStudyPanel(true)}
-            aria-label={`Study notes for verse ${verseNum}`}
-            title={`Study ${passageRef}`}
-            style={{
-              display: 'inline',
-              background: 'none',
-              border: 'none',
-              padding: 0,
-              cursor: 'pointer',
-              fontSize: '0.65rem',
-              color: highlighted ? COLOR_BORDER[color!] : 'var(--stone)',
-              fontFamily: "'DM Sans', sans-serif",
-              verticalAlign: 'super',
-              marginRight: 4,
-              letterSpacing: '0.04em',
-              transition: 'color 0.15s',
-              lineHeight: 0,
-            }}
-            onMouseOver={(e) => { e.currentTarget.style.color = 'var(--companion)'; }}
-            onMouseOut={(e) => { e.currentTarget.style.color = highlighted ? COLOR_BORDER[color!] : 'var(--stone)'; }}
-          >
-            {verseNum}
-          </button>
-          {text}
-        </p>
+        {/* Verse text — poetry renders multiple lines, prose renders one */}
+        <div>
+          {lines.map((line, i) => (
+            <p
+              key={i}
+              style={{
+                fontFamily: "'IM Fell English', serif",
+                fontSize: '1.2rem',
+                lineHeight: isPoetry ? 1.8 : 2.1,
+                color: 'var(--cream)',
+                margin: 0,
+                paddingLeft: isPoetry ? (INDENT[line.indentLevel] ?? '3.6rem') : 0,
+              }}
+            >
+              {i === 0 && (
+                <button
+                  ref={verseNumRef}
+                  onClick={() => setShowStudyPanel(true)}
+                  aria-label={`Study notes for verse ${verseNum}`}
+                  title={`Study ${passageRef}`}
+                  style={{
+                    display: 'inline',
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                    cursor: 'pointer',
+                    fontSize: '0.65rem',
+                    color: highlighted ? COLOR_BORDER[color!] : 'var(--stone)',
+                    fontFamily: "'DM Sans', sans-serif",
+                    verticalAlign: 'super',
+                    marginRight: 4,
+                    letterSpacing: '0.04em',
+                    transition: 'color 0.15s',
+                    lineHeight: 0,
+                  }}
+                  onMouseOver={(e) => { e.currentTarget.style.color = 'var(--companion)'; }}
+                  onMouseOut={(e) => { e.currentTarget.style.color = highlighted ? COLOR_BORDER[color!] : 'var(--stone)'; }}
+                >
+                  {verseNum}
+                </button>
+              )}
+              {line.segments.map((seg, j) =>
+                seg.isJesus
+                  ? <span key={j} className="words-of-jesus">{seg.text}</span>
+                  : seg.text
+              )}
+            </p>
+          ))}
+        </div>
 
         {/* Action toolbar */}
         {isAuthenticated && (
@@ -260,7 +292,6 @@ export function VerseBlock({
             <ToolbarButton label="Add note" onClick={handleNote}>
               <IconNote />
             </ToolbarButton>
-            {/* Bookmark: gold fill when saved, checkmark flash after saving */}
             <ToolbarButton
               label={saveLabel}
               onClick={handleSave}

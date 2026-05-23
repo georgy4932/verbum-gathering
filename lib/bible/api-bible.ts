@@ -2,34 +2,38 @@
 // Docs: https://scripture.api.bible
 // Set BIBLE_API_KEY in .env.local (free tier: 2000 req/day).
 
+import { getVerseCount } from './verse-counts';
+
 export type BibleVersion = 'KJV' | 'NKJV' | 'NIV' | 'NLT' | 'ESV' | 'MSG' | 'TPT' | 'WEB' | 'ASV';
 
-export interface BibleVerse {
-  verse: number;
+export interface TextSegment {
   text: string;
+  isJesus: boolean;
+}
+
+export interface VerseLine {
+  segments: TextSegment[];
+  indentLevel: number; // 0=prose, 1=q1, 2=q2, 3=q3
+}
+
+export interface VerseContent {
+  verse: number;
+  text: string; // plain joined text, used for search/copy/AI context
+  lines: VerseLine[];
+  isPoetry: boolean;
+  isParagraphStart: boolean;
+  isStanzaBreak: boolean;
+  hasRedLetter: boolean;
 }
 
 export interface PassageResult {
-  verses: BibleVerse[];
+  verses: VerseContent[];
   reference: string;
   fullText: string; // joined plain text, used as AI companion context
   version: BibleVersion;
 }
 
 // ── Translation → API.Bible Bible ID ─────────────────────────────────────────
-// Verify / update IDs from your API.Bible dashboard:
-// https://scripture.api.bible/profile → "My API Keys" → "Allowed Bibles"
-// Public-domain IDs (always available on free tier):
-//   KJV  de4e12af7f28f599-02   King James Version
-//   WEB  9879dbb7cfe39e4d-04   World English Bible
-//   ASV  685d1470fe4d5c3b-01   American Standard Version 1901
-// Licensed IDs (require content-partner agreement in your API.Bible account):
-//   NKJV 'de4e12af7f28f599-01'  (Thomas Nelson — verify ID)
-//   NIV  '06125adad2d5898a-01'  (Biblica — verify ID)
-//   ESV  'f421fe261da7624f-01'  (Crossway — verify ID)
-//   NLT  'f72b840c855f362c-04'  (Tyndale — verify ID)
-//   MSG  '65eec8e0b60e656b-01'  (NavPress — verify ID)
-//   TPT  Not yet indexed on API.Bible; falls back to KJV
 const TRANSLATION_IDS: Record<BibleVersion, string | null> = {
   KJV:  'de4e12af7f28f599-02',
   WEB:  '9879dbb7cfe39e4d-04',
@@ -39,11 +43,10 @@ const TRANSLATION_IDS: Record<BibleVersion, string | null> = {
   ESV:  'f421fe261da7624f-01',
   NLT:  'f72b840c855f362c-04',
   MSG:  '65eec8e0b60e656b-01',
-  TPT:  null, // not on API.Bible; will fall back to KJV
+  TPT:  null,
 };
 
 // ── Slug → USFM book code ─────────────────────────────────────────────────────
-// API.Bible chapter IDs use standard USFM codes, e.g. "JHN.3" for John 3.
 export const SLUG_TO_USFM: Record<string, string> = {
   'genesis':          'GEN', 'exodus':            'EXO', 'leviticus':       'LEV',
   'numbers':          'NUM', 'deuteronomy':        'DEU', 'joshua':          'JOS',
@@ -71,11 +74,7 @@ export const SLUG_TO_USFM: Record<string, string> = {
 
 const API_BASE = 'https://api.scripture.api.bible/v1';
 
-// ── Parse API.Bible JSON content (structured AST) into verse array ────────────
-// API.Bible with content-type=json returns an AST where verse nodes carry
-// attrs.number and their child nodes contain the text. This is far more
-// reliable than text-mode [N] marker splitting.
-
+// ── JSON node types ───────────────────────────────────────────────────────────
 interface ApiJsonNode {
   type?: string;
   name?: string;
@@ -84,49 +83,165 @@ interface ApiJsonNode {
   attrs?: Record<string, string>;
 }
 
-function nodeText(node: ApiJsonNode): string {
-  if (node.name === 'note') return '';        // skip footnotes
-  if (node.name === 'ref') return '';         // skip cross-ref tags
-  if (typeof node.text === 'string') return node.text;
-  if (node.items) return node.items.map(nodeText).join('');
-  return '';
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function paraStyleToIndent(style: string): number {
+  if (style === 'q' || style === 'q1') return 1;
+  if (style === 'q2') return 2;
+  if (style === 'q3') return 3;
+  if (style === 'qr' || style === 'qc') return 2;
+  return 0;
 }
 
-function parseApiBibleJson(content: ApiJsonNode[]): BibleVerse[] {
-  const verses: BibleVerse[] = [];
+// ── Rich JSON parser — USX/AST format ────────────────────────────────────────
+// API.Bible content-type=json returns a USX Abstract Syntax Tree.
+// CRITICAL: In USX, a <verse> node is a BOUNDARY MARKER, not a container.
+// The verse text lives as SIBLING nodes after the marker, not inside it.
+// We walk the tree in document order:
+//   - Each top-level <para> node defines a line (style = q1/q2/q3/p/b/etc.)
+//   - <b> para nodes are stanza breaks
+//   - <char style="wj"> nodes mark words of Jesus
+function parseApiBibleJsonRich(content: ApiJsonNode[]): VerseContent[] {
+  let currentNum: number | null = null;
+  let currentParaStyle = 'p';
+  let inJesus = false;
+  let stanzaBreakPending = false;
+  let paragraphStartPending = false;
+  let currentLineSegs: TextSegment[] = [];
 
-  function walk(node: ApiJsonNode) {
-    if (node.name === 'verse' && node.attrs?.number) {
-      const num = parseInt(node.attrs.number, 10);
-      if (!isNaN(num)) {
-        const raw = node.items ? node.items.map(nodeText).join('') : '';
-        const text = raw.replace(/\s+/g, ' ').trim();
-        if (text) verses.push({ verse: num, text });
-      }
-    } else if (node.items) {
-      node.items.forEach(walk);
+  const verseData = new Map<number, {
+    lines: VerseLine[];
+    isParagraphStart: boolean;
+    isStanzaBreak: boolean;
+  }>();
+
+  function ensureVerse(num: number) {
+    if (!verseData.has(num)) {
+      verseData.set(num, { lines: [], isParagraphStart: false, isStanzaBreak: false });
     }
+    return verseData.get(num)!;
   }
 
-  content.forEach(walk);
-  return verses;
+  function flushLine() {
+    if (currentNum === null || currentLineSegs.length === 0) {
+      currentLineSegs = [];
+      return;
+    }
+    const joinedText = currentLineSegs.map((s) => s.text).join('');
+    if (!joinedText.trim()) { currentLineSegs = []; return; }
+    const v = ensureVerse(currentNum);
+    v.lines.push({ segments: currentLineSegs, indentLevel: paraStyleToIndent(currentParaStyle) });
+    currentLineSegs = [];
+  }
+
+  function collectInPara(node: ApiJsonNode) {
+    if (node.name === 'note' || node.name === 'ref') return;
+
+    if (node.name === 'verse') {
+      if (node.attrs?.eid) return; // end marker — skip
+      const raw = node.attrs?.number ?? node.attrs?.sid?.match(/:(\d+)$/)?.[1];
+      const num = raw ? parseInt(raw, 10) : NaN;
+      if (!isNaN(num)) {
+        flushLine(); // close any line accumulated so far (for multi-verse paras)
+        currentNum = num;
+        const v = ensureVerse(num);
+        if (stanzaBreakPending) { v.isStanzaBreak = true; stanzaBreakPending = false; }
+        if (paragraphStartPending) { v.isParagraphStart = true; paragraphStartPending = false; }
+      }
+      return;
+    }
+
+    if (node.name === 'char') {
+      const wasJesus = inJesus;
+      if (node.attrs?.style === 'wj') inJesus = true;
+      if (node.items) node.items.forEach(collectInPara);
+      inJesus = wasJesus;
+      return;
+    }
+
+    if (typeof node.text === 'string' && currentNum !== null) {
+      currentLineSegs.push({ text: node.text, isJesus: inJesus });
+    }
+
+    if (node.items) node.items.forEach(collectInPara);
+  }
+
+  for (const node of content) {
+    if (node.name !== 'para') continue;
+    const style = node.attrs?.style ?? 'p';
+
+    // New para = end of previous para's line
+    flushLine();
+
+    if (style === 'b') {
+      stanzaBreakPending = true;
+      continue;
+    }
+
+    currentParaStyle = style;
+
+    if (style === 'p' || style === 'pi' || style === 'pi1' || style === 'm') {
+      paragraphStartPending = true;
+    }
+
+    if (node.items) node.items.forEach(collectInPara);
+  }
+
+  flushLine(); // final verse's last line
+
+  const sortedNums = Array.from(verseData.keys()).sort((a, b) => a - b);
+  return sortedNums.map((num) => {
+    const v = verseData.get(num)!;
+    const allSegs = v.lines.flatMap((l) => l.segments);
+    const text = allSegs.map((s) => s.text).join('').replace(/\s+/g, ' ').trim();
+    const isPoetry = v.lines.some((l) => l.indentLevel > 0);
+    const hasRedLetter = allSegs.some((s) => s.isJesus);
+    return {
+      verse: num,
+      text,
+      lines: v.lines,
+      isPoetry,
+      isParagraphStart: v.isParagraphStart,
+      isStanzaBreak: v.isStanzaBreak,
+      hasRedLetter,
+    };
+  });
 }
 
-// Legacy text-mode parser kept as a last-resort fallback.
-function parseApiBibleText(content: string): BibleVerse[] {
+// ── Text parser — [N] marker format ──────────────────────────────────────────
+// API.Bible content-type=text embeds verse numbers as [N] markers.
+// Returns VerseContent with no structural metadata (prose/no red letter).
+function parseApiBibleTextRich(content: string): VerseContent[] {
   const cleaned = content.replace(/¶\s*/g, '').replace(/\s+/g, ' ').trim();
   const parts = cleaned.split(/\[(\d+)\]/);
-  const verses: BibleVerse[] = [];
-  // Include the final segment: loop to parts.length (not parts.length - 1)
+  const verses: VerseContent[] = [];
   for (let i = 1; i < parts.length; i += 2) {
     const num = parseInt(parts[i], 10);
-    const text = (parts[i + 1] ?? '').trim();
-    if (!isNaN(num) && text) verses.push({ verse: num, text });
+    const text = (parts[i + 1] ?? '').replace(/\s+/g, ' ').trim();
+    if (!isNaN(num) && text) {
+      verses.push({
+        verse: num,
+        text,
+        lines: [{ segments: [{ text, isJesus: false }], indentLevel: 0 }],
+        isPoetry: false,
+        isParagraphStart: false,
+        isStanzaBreak: false,
+        hasRedLetter: false,
+      });
+    }
   }
   return verses;
+}
+
+// ── Completeness check ────────────────────────────────────────────────────────
+function isComplete(verses: VerseContent[], bookSlug: string, chapter: number): boolean {
+  const expected = getVerseCount(bookSlug, chapter);
+  return verses.length >= Math.ceil(expected * 0.9);
 }
 
 // ── Fetch from API.Bible ──────────────────────────────────────────────────────
+// Strategy:
+//   1. Try JSON content-type (structured USX AST, rich formatting data)
+//   2. If JSON yields < 90% of expected verses, retry with text content-type
 async function fetchFromApiBible(
   bookSlug: string,
   chapter: number,
@@ -140,44 +255,44 @@ async function fetchFromApiBible(
   if (!usfm) return null;
 
   const chapterId = `${usfm}.${chapter}`;
-  // Prefer JSON content-type — returns a structured AST with explicit verse nodes,
-  // eliminating the need to split a text blob on [N] markers (which is fragile).
-  const url = `${API_BASE}/bibles/${bibleId}/chapters/${chapterId}` +
-    `?content-type=json&include-verse-numbers=true&include-titles=false` +
-    `&include-chapter-numbers=false&include-notes=false`;
+  const baseParams = `&include-titles=false&include-chapter-numbers=false&include-notes=false`;
 
-  try {
-    const res = await fetch(url, {
-      headers: { 'api-key': apiKey },
-      next: { revalidate: 86400 },
-    });
+  async function request(contentType: 'json' | 'text'): Promise<VerseContent[] | null> {
+    const url = `${API_BASE}/bibles/${bibleId}/chapters/${chapterId}` +
+      `?content-type=${contentType}&include-verse-numbers=true${baseParams}`;
+    try {
+      const res = await fetch(url, {
+        headers: { 'api-key': apiKey as string },
+        next: { revalidate: 86400 },
+      });
+      if (!res.ok) return null;
 
-    if (!res.ok) return null;
+      const json = await res.json() as { data: { content: ApiJsonNode[] | string } };
+      const content = json.data?.content;
+      if (!content) return null;
 
-    const json = await res.json() as {
-      data: { content: ApiJsonNode[] | string; reference: string };
-    };
-
-    let verses: BibleVerse[];
-    const content = json.data?.content;
-
-    if (Array.isArray(content)) {
-      // Structured JSON path — preferred
-      verses = parseApiBibleJson(content);
-    } else if (typeof content === 'string') {
-      // Unexpected text response — fall back to legacy parser
-      verses = parseApiBibleText(content);
-    } else {
+      if (Array.isArray(content)) return parseApiBibleJsonRich(content);
+      if (typeof content === 'string') return parseApiBibleTextRich(content);
+      return null;
+    } catch {
       return null;
     }
-
-    if (verses.length === 0) return null;
-
-    const fullText = verses.map((v) => v.text).join(' ');
-    return { verses, reference: json.data.reference, fullText, version };
-  } catch {
-    return null;
   }
+
+  // First pass: JSON (structured AST with poetry/red-letter data)
+  let verses = await request('json') ?? [];
+
+  // Second pass: text mode if JSON produced an incomplete result
+  if (!isComplete(verses, bookSlug, chapter)) {
+    const textVerses = await request('text') ?? [];
+    if (textVerses.length > verses.length) verses = textVerses;
+  }
+
+  if (verses.length === 0) return null;
+
+  const fullText = verses.map((v) => v.text).join(' ');
+  const reference = `${bookSlug.replace(/-/g, ' ')} ${chapter}`;
+  return { verses, reference, fullText, version };
 }
 
 // ── Fallback: bible-api.com (KJV only, no API key needed) ────────────────────
@@ -196,32 +311,35 @@ async function fetchFromBibleApiCom(bookSlug: string, chapter: number): Promise<
       error?: string;
     };
     if (data.error || !data.verses?.length) return null;
-    return {
-      verses: data.verses.map((v) => ({ verse: v.verse, text: v.text.trim() })),
-      reference: data.reference,
-      fullText: data.text,
-      version: 'KJV',
-    };
+
+    const verses: VerseContent[] = data.verses.map((v) => {
+      const text = v.text.replace(/\s+/g, ' ').trim();
+      return {
+        verse: v.verse,
+        text,
+        lines: [{ segments: [{ text, isJesus: false }], indentLevel: 0 }],
+        isPoetry: false,
+        isParagraphStart: false,
+        isStanzaBreak: false,
+        hasRedLetter: false,
+      };
+    });
+    return { verses, reference: data.reference, fullText: data.text, version: 'KJV' };
   } catch {
     return null;
   }
 }
 
 // ── Public entry point ────────────────────────────────────────────────────────
-// Resolves: API.Bible (if key present) → bible-api.com KJV fallback → null
 export async function getPassageText(
   bookSlug: string,
   chapter: number,
   version: BibleVersion = 'KJV',
 ): Promise<PassageResult | null> {
-  // Try API.Bible first (supports all translations)
   const fromApiBible = await fetchFromApiBible(bookSlug, chapter, version);
   if (fromApiBible) return fromApiBible;
 
-  // If API.Bible failed or key absent, fall back to bible-api.com for KJV
-  // (other translations are unavailable without API.Bible)
   if (version !== 'KJV') {
-    // Attempt KJV from API.Bible, then fallback
     const kjvFallback = await fetchFromApiBible(bookSlug, chapter, 'KJV');
     if (kjvFallback) return { ...kjvFallback, version: 'KJV' };
   }
