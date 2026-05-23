@@ -1,20 +1,24 @@
 import { redirect } from 'next/navigation';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { createStudyNote } from '@/app/actions/study-notes';
+import { NoteEditorClient } from '@/components/companion/note-editor-client';
+
+export const metadata = {
+  title: 'New Note — Companion',
+};
 
 export const dynamic = 'force-dynamic';
 
-// Visited via <Link href="/companion/notes/new"> — creates a note and
-// immediately redirects to the editor. Works without client-side JS.
+// Renders the editor in draft mode (note=null).
+// The DB row is created only when the user types substantive content.
 export default async function NewNotePage() {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) redirect('/auth/signin');
 
-  const today = new Date().toISOString().split('T')[0];
-  const result = await createStudyNote({ note_date: today });
-
-  if (!result.success || !result.data) redirect('/companion/notes');
-  redirect(`/companion/notes/${result.data.id}`);
+  return (
+    <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
+      <NoteEditorClient note={null} />
+    </div>
+  );
 }

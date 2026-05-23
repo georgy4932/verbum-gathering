@@ -26,7 +26,7 @@ interface ActionResult<T = void> {
 
 interface CreateInput {
   title?: string | null;
-  content?: string;
+  content: string;           // required — DB enforces btrim(content) >= 1 char
   passage_ref?: string | null;
   note_date?: string | null;
 }
@@ -39,8 +39,12 @@ interface UpdateInput {
 }
 
 export async function createStudyNote(
-  input: CreateInput = {}
+  input: CreateInput
 ): Promise<ActionResult<StudyNote>> {
+  if (!input.content.trim()) {
+    return { success: false, error: 'Content cannot be empty.' };
+  }
+
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, error: 'Not authenticated' };
@@ -48,11 +52,11 @@ export async function createStudyNote(
   const { data, error } = await supabase
     .from('study_notes')
     .insert({
-      user_id: user.id,
-      title: input.title ?? null,
-      content: input.content ?? '',
-      passage_ref: input.passage_ref ?? null,
-      note_date: input.note_date ?? null,
+      user_id:     user.id,
+      title:       input.title?.trim() || null,
+      content:     input.content,
+      passage_ref: input.passage_ref?.trim() || null,
+      note_date:   input.note_date ?? null,
     })
     .select()
     .single();
@@ -67,13 +71,24 @@ export async function updateStudyNote(
   id: string,
   input: UpdateInput
 ): Promise<ActionResult<StudyNote>> {
+  // If content is provided it must be non-empty after trimming
+  if (input.content !== undefined && !input.content.trim()) {
+    return { success: false, error: 'Content cannot be empty.' };
+  }
+
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, error: 'Not authenticated' };
 
+  const patch: Record<string, unknown> = {};
+  if (input.title       !== undefined) patch.title       = input.title?.trim() || null;
+  if (input.content     !== undefined) patch.content     = input.content;
+  if (input.passage_ref !== undefined) patch.passage_ref = input.passage_ref?.trim() || null;
+  if (input.note_date   !== undefined) patch.note_date   = input.note_date || null;
+
   const { data, error } = await supabase
     .from('study_notes')
-    .update(input)
+    .update(patch)
     .eq('id', id)
     .eq('user_id', user.id)
     .select()

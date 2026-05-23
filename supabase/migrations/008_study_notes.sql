@@ -1,15 +1,19 @@
--- ── 008: Study notes ────────────────────────────────────────────────────────
+-- ── 008: Study notes ─────────────────────────────────────────────────────────
 -- Distinct from user_reflections (brief devotional, day-linked).
 -- Study notes are longer-form, passage-anchored, open-ended — a personal
--- Scripture study journal.  Private only; no sharing, no feed.
+-- Scripture study journal. Private only; no sharing, no feed.
 -- The structured book/chapter/verse fields are nullable in v1 (passage_ref
 -- is free-form) but are reserved for passage-anchoring from the reader.
+--
+-- Assumes earlier migrations already created:
+--   - auth.users references
+--   - update_updated_at_column()
 
 CREATE TABLE IF NOT EXISTS study_notes (
   id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id     UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   title       TEXT,
-  content     TEXT        NOT NULL DEFAULT '',
+  content     TEXT        NOT NULL,
   passage_ref TEXT,
   book        TEXT,
   chapter     INTEGER,
@@ -18,63 +22,101 @@ CREATE TABLE IF NOT EXISTS study_notes (
   note_date   DATE,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
-  CONSTRAINT chk_study_note_title   CHECK (title   IS NULL OR char_length(title)   <= 500),
-  CONSTRAINT chk_study_note_content CHECK (char_length(content) <= 50000)
+
+  CONSTRAINT chk_study_note_title
+    CHECK (title IS NULL OR char_length(btrim(title)) <= 500),
+
+  CONSTRAINT chk_study_note_content
+    CHECK (char_length(btrim(content)) BETWEEN 1 AND 50000),
+
+  CONSTRAINT chk_study_note_chapter
+    CHECK (chapter IS NULL OR chapter >= 1),
+
+  CONSTRAINT chk_study_note_verse_start
+    CHECK (verse_start IS NULL OR verse_start >= 1),
+
+  CONSTRAINT chk_study_note_verse_end
+    CHECK (verse_end IS NULL OR verse_end >= 1),
+
+  CONSTRAINT chk_study_note_verse_range
+    CHECK (
+      verse_start IS NULL
+      OR verse_end IS NULL
+      OR verse_end >= verse_start
+    )
 );
 
-CREATE INDEX IF NOT EXISTS idx_study_notes_recent  ON study_notes (user_id, updated_at DESC);
-CREATE INDEX IF NOT EXISTS idx_study_notes_passage ON study_notes (user_id, book, chapter);
-CREATE INDEX IF NOT EXISTS idx_study_notes_date    ON study_notes (user_id, note_date DESC);
+CREATE INDEX IF NOT EXISTS idx_study_notes_recent
+  ON study_notes (user_id, updated_at DESC);
 
-CREATE OR REPLACE FUNCTION update_study_notes_updated_at()
-RETURNS TRIGGER LANGUAGE plpgsql AS $$
-BEGIN
-  NEW.updated_at = now();
-  RETURN NEW;
-END;
-$$;
+CREATE INDEX IF NOT EXISTS idx_study_notes_passage
+  ON study_notes (user_id, book, chapter);
+
+CREATE INDEX IF NOT EXISTS idx_study_notes_date
+  ON study_notes (user_id, note_date DESC);
 
 DROP TRIGGER IF EXISTS trg_study_notes_updated_at ON study_notes;
+
 CREATE TRIGGER trg_study_notes_updated_at
   BEFORE UPDATE ON study_notes
-  FOR EACH ROW EXECUTE FUNCTION update_study_notes_updated_at();
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
 
 ALTER TABLE study_notes ENABLE ROW LEVEL SECURITY;
 
 DO $$
 BEGIN
   IF NOT EXISTS (
-    SELECT 1 FROM pg_policies
-    WHERE tablename = 'study_notes' AND policyname = 'Study notes: select own'
+    SELECT 1
+    FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'study_notes'
+      AND policyname = 'Study notes: select own'
   ) THEN
     CREATE POLICY "Study notes: select own"
-      ON study_notes FOR SELECT USING (auth.uid() = user_id);
+      ON study_notes
+      FOR SELECT
+      USING (auth.uid() = user_id);
   END IF;
 
   IF NOT EXISTS (
-    SELECT 1 FROM pg_policies
-    WHERE tablename = 'study_notes' AND policyname = 'Study notes: insert own'
+    SELECT 1
+    FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'study_notes'
+      AND policyname = 'Study notes: insert own'
   ) THEN
     CREATE POLICY "Study notes: insert own"
-      ON study_notes FOR INSERT WITH CHECK (auth.uid() = user_id);
+      ON study_notes
+      FOR INSERT
+      WITH CHECK (auth.uid() = user_id);
   END IF;
 
   IF NOT EXISTS (
-    SELECT 1 FROM pg_policies
-    WHERE tablename = 'study_notes' AND policyname = 'Study notes: update own'
+    SELECT 1
+    FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'study_notes'
+      AND policyname = 'Study notes: update own'
   ) THEN
     CREATE POLICY "Study notes: update own"
-      ON study_notes FOR UPDATE
+      ON study_notes
+      FOR UPDATE
       USING (auth.uid() = user_id)
       WITH CHECK (auth.uid() = user_id);
   END IF;
 
   IF NOT EXISTS (
-    SELECT 1 FROM pg_policies
-    WHERE tablename = 'study_notes' AND policyname = 'Study notes: delete own'
+    SELECT 1
+    FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'study_notes'
+      AND policyname = 'Study notes: delete own'
   ) THEN
     CREATE POLICY "Study notes: delete own"
-      ON study_notes FOR DELETE USING (auth.uid() = user_id);
+      ON study_notes
+      FOR DELETE
+      USING (auth.uid() = user_id);
   END IF;
 END;
 $$;

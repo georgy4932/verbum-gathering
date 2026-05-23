@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useRef, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { updateStudyNote, deleteStudyNote } from '@/app/actions/study-notes';
+import { createStudyNote, updateStudyNote, deleteStudyNote } from '@/app/actions/study-notes';
 import type { StudyNote } from '@/app/actions/study-notes';
 
+// note=null means "new draft" — the DB row is created on first substantive save.
 interface NoteEditorClientProps {
-  note: StudyNote;
+  note: StudyNote | null;
 }
 
 function formatSavedTime(d: Date): string {
@@ -14,17 +15,18 @@ function formatSavedTime(d: Date): string {
 }
 
 export function NoteEditorClient({ note }: NoteEditorClientProps) {
-  const [title, setTitle] = useState(note.title ?? '');
-  const [content, setContent] = useState(note.content);
-  const [passageRef, setPassageRef] = useState(note.passage_ref ?? '');
+  const [noteId, setNoteId]     = useState<string | null>(note?.id ?? null);
+  const [title, setTitle]       = useState(note?.title ?? '');
+  const [content, setContent]   = useState(note?.content ?? '');
+  const [passageRef, setPassageRef] = useState(note?.passage_ref ?? '');
   const [noteDate, setNoteDate] = useState(
-    note.note_date ?? new Date().toISOString().split('T')[0]
+    note?.note_date ?? new Date().toISOString().split('T')[0]
   );
-  const [savedAt, setSavedAt] = useState<Date | null>(null);
+  const [savedAt, setSavedAt]           = useState<Date | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [isPending, startSave] = useTransition();
+  const [isPending, startSave]   = useTransition();
   const [isDeleting, startDelete] = useTransition();
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const router = useRouter();
 
@@ -49,14 +51,35 @@ export function NoteEditorClient({ note }: NoteEditorClientProps) {
       const c = patch.content    !== undefined ? patch.content    : content;
       const p = patch.passageRef !== undefined ? patch.passageRef : passageRef;
       const d = patch.noteDate   !== undefined ? patch.noteDate   : noteDate;
+
+      // Don't persist until there is real content
+      if (!c.trim()) return;
+
       startSave(async () => {
-        const result = await updateStudyNote(note.id, {
-          title:       t.trim() || null,
-          content:     c,
-          passage_ref: p.trim() || null,
-          note_date:   d || null,
-        });
-        if (result.success) setSavedAt(new Date());
+        if (!noteId) {
+          // Draft → create new row
+          const result = await createStudyNote({
+            title:       t.trim() || null,
+            content:     c,
+            passage_ref: p.trim() || null,
+            note_date:   d || null,
+          });
+          if (result.success && result.data) {
+            setNoteId(result.data.id);
+            setSavedAt(new Date());
+            // Update URL without a full navigation
+            router.replace(`/companion/notes/${result.data.id}`);
+          }
+        } else {
+          // Existing note → update
+          const result = await updateStudyNote(noteId, {
+            title:       t.trim() || null,
+            content:     c,
+            passage_ref: p.trim() || null,
+            note_date:   d || null,
+          });
+          if (result.success) setSavedAt(new Date());
+        }
       });
     }, 1400);
   }
@@ -84,8 +107,12 @@ export function NoteEditorClient({ note }: NoteEditorClientProps) {
   }
 
   function handleDelete() {
+    if (!noteId) {
+      router.push('/companion/notes');
+      return;
+    }
     startDelete(async () => {
-      await deleteStudyNote(note.id);
+      await deleteStudyNote(noteId);
       router.push('/companion/notes');
       router.refresh();
     });
@@ -103,7 +130,7 @@ export function NoteEditorClient({ note }: NoteEditorClientProps) {
   return (
     <div style={{ maxWidth: 700, margin: '0 auto', padding: '0 1.25rem 6rem' }}>
 
-      {/* Back navigation */}
+      {/* Back + delete row */}
       <div style={{
         paddingTop: 28, paddingBottom: 32,
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -119,15 +146,14 @@ export function NoteEditorClient({ note }: NoteEditorClientProps) {
             onClick={() => setConfirmDelete(true)}
             style={{
               fontSize: 12, color: 'var(--stone)', background: 'none',
-              border: 'none', cursor: 'pointer', opacity: 0.45,
-              transition: 'opacity 0.15s',
+              border: 'none', cursor: 'pointer', opacity: 0.4,
               minHeight: 32,
             }}
           >
             Delete
           </button>
         ) : (
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
             <span style={{ fontSize: 12, color: 'var(--stone)' }}>Delete this note?</span>
             <button
               onClick={handleDelete}
@@ -169,10 +195,10 @@ export function NoteEditorClient({ note }: NoteEditorClientProps) {
         }}
       />
 
-      {/* Passage ref + date row */}
+      {/* Passage ref + date */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
-        marginBottom: 28,
+        display: 'flex', alignItems: 'center', gap: 10,
+        flexWrap: 'wrap', marginBottom: 28,
       }}>
         <input
           type="text"
@@ -181,8 +207,7 @@ export function NoteEditorClient({ note }: NoteEditorClientProps) {
           placeholder="Scripture reference…"
           style={{
             ...inputBase,
-            width: 'auto',
-            flex: '1 1 160px',
+            width: 'auto', flex: '1 1 160px',
             fontSize: 13,
             color: passageRef ? 'var(--companion)' : 'var(--stone)',
             letterSpacing: '0.03em',
@@ -195,11 +220,8 @@ export function NoteEditorClient({ note }: NoteEditorClientProps) {
           onChange={handleDateChange}
           style={{
             ...inputBase,
-            width: 'auto',
-            flexShrink: 0,
-            fontSize: 12,
-            color: 'var(--stone)',
-            cursor: 'pointer',
+            width: 'auto', flexShrink: 0,
+            fontSize: 12, color: 'var(--stone)', cursor: 'pointer',
           }}
         />
       </div>
@@ -207,7 +229,7 @@ export function NoteEditorClient({ note }: NoteEditorClientProps) {
       {/* Divider */}
       <div style={{ borderTop: '1px solid var(--faint)', marginBottom: 32 }} />
 
-      {/* Content */}
+      {/* Content — the writing surface */}
       <textarea
         ref={textareaRef}
         value={content}
@@ -231,15 +253,16 @@ export function NoteEditorClient({ note }: NoteEditorClientProps) {
       />
 
       {/* Save status */}
-      <div style={{
-        marginTop: 24,
-        display: 'flex', justifyContent: 'flex-end',
-      }}>
+      <div style={{ marginTop: 24, display: 'flex', justifyContent: 'flex-end' }}>
         {isPending ? (
-          <span style={{ fontSize: 11, color: 'var(--stone)', opacity: 0.4 }}>Saving…</span>
+          <span style={{ fontSize: 11, color: 'var(--stone)', opacity: 0.35 }}>Saving…</span>
         ) : savedAt ? (
-          <span style={{ fontSize: 11, color: 'var(--stone)', opacity: 0.4 }}>
+          <span style={{ fontSize: 11, color: 'var(--stone)', opacity: 0.35 }}>
             Saved {formatSavedTime(savedAt)}
+          </span>
+        ) : !noteId ? (
+          <span style={{ fontSize: 11, color: 'var(--stone)', opacity: 0.25 }}>
+            Start writing to save
           </span>
         ) : null}
       </div>

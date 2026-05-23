@@ -2,8 +2,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { createStudyNote } from '@/app/actions/study-notes';
 import type { StudyNote } from '@/app/actions/study-notes';
 
 interface NotesListClientProps {
@@ -42,23 +40,10 @@ function NotePreview({ content }: { content: string }) {
 
 export function NotesListClient({ initialNotes }: NotesListClientProps) {
   const [query, setQuery] = useState('');
-  const [creating, setCreating] = useState(false);
-  const router = useRouter();
 
   const filtered = query.trim()
     ? initialNotes.filter((n) => noteMatches(n, query.trim()))
     : initialNotes;
-
-  async function handleNew() {
-    setCreating(true);
-    const today = new Date().toISOString().split('T')[0];
-    const result = await createStudyNote({ note_date: today });
-    if (result.success && result.data) {
-      router.push(`/companion/notes/${result.data.id}`);
-    } else {
-      setCreating(false);
-    }
-  }
 
   return (
     <div>
@@ -66,11 +51,7 @@ export function NotesListClient({ initialNotes }: NotesListClientProps) {
       <div style={{
         display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28, flexWrap: 'wrap',
       }}>
-        <div style={{
-          flex: 1, minWidth: 200,
-          position: 'relative',
-          display: 'flex', alignItems: 'center',
-        }}>
+        <div style={{ flex: 1, minWidth: 200 }}>
           <input
             type="search"
             value={query}
@@ -89,24 +70,20 @@ export function NotesListClient({ initialNotes }: NotesListClientProps) {
             }}
           />
         </div>
-        <button
-          onClick={handleNew}
-          disabled={creating}
+        <Link
+          href="/companion/notes/new"
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 7,
             padding: '10px 20px', borderRadius: 10,
             border: '1px solid var(--companion-lo)',
-            background: 'transparent',
             color: 'var(--companion)',
             fontSize: 13, fontWeight: 500,
-            cursor: creating ? 'default' : 'pointer',
-            opacity: creating ? 0.6 : 1,
-            transition: 'border-color 0.15s, opacity 0.15s',
+            textDecoration: 'none',
             whiteSpace: 'nowrap',
           }}
         >
-          {creating ? 'Opening…' : '+ New note'}
-        </button>
+          + New note
+        </Link>
       </div>
 
       {/* Empty state */}
@@ -128,16 +105,12 @@ export function NotesListClient({ initialNotes }: NotesListClientProps) {
           }}>
             Psalm 119:11
           </span>
-          <button
-            onClick={handleNew}
-            disabled={creating}
-            style={{
-              fontSize: 13, color: 'var(--companion)', background: 'none',
-              border: 'none', cursor: 'pointer', padding: 0,
-            }}
+          <Link
+            href="/companion/notes/new"
+            style={{ fontSize: 13, color: 'var(--companion)' }}
           >
-            {creating ? 'Opening…' : 'Write your first note →'}
-          </button>
+            Write your first note →
+          </Link>
         </div>
       )}
 
@@ -166,7 +139,8 @@ export function NotesListClient({ initialNotes }: NotesListClientProps) {
               }}>
                 <div style={{
                   display: 'flex', justifyContent: 'space-between',
-                  alignItems: 'baseline', gap: 12, marginBottom: note.title || note.content ? 8 : 0,
+                  alignItems: 'baseline', gap: 12,
+                  marginBottom: note.title || note.content ? 8 : 0,
                 }}>
                   <span style={{ fontSize: 12, color: 'var(--companion)', fontWeight: 500 }}>
                     {note.passage_ref || 'Study note'}
