@@ -92,7 +92,7 @@ export function PlanInteractive({ plan, progress, viewDay, reflections }: PlanIn
                     display: 'inline-flex', alignItems: 'center', gap: 4,
                     padding: '6px 14px', borderRadius: 8,
                     border: '1px solid var(--faint)',
-                    background: 'rgba(255,255,255,0.03)',
+                    background: 'var(--card-surface)',
                     color: 'var(--cream)',
                     fontSize: 14, textDecoration: 'none',
                     fontFamily: "'IM Fell English', serif",
