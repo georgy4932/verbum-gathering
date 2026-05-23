@@ -312,11 +312,12 @@ async function fetchFromApiBible(
 async function fetchFromBibleApiCom(bookSlug: string, chapter: number): Promise<PassageResult | null> {
   const apiParam = bookSlug.replace(/-/g, '+');
   // bible-api.com parses /obadiah+1 as "verse 1" not "chapter 1" for
-  // single-chapter books. Use the explicit chapter:verse-range format so
-  // the 1 is unambiguous as a chapter number: /obadiah+1:1-200
+  // single-chapter books. Use the explicit chapter:verse-range format with
+  // the exact verse count so the request matches a known range (e.g. /obadiah+1:1-21).
   const isSingleChapter = (VERSE_COUNTS[bookSlug]?.length ?? 2) === 1;
+  const exactVerseCount = VERSE_COUNTS[bookSlug]?.[0] ?? 25;
   const path = isSingleChapter
-    ? `${apiParam}+1:1-200`
+    ? `${apiParam}+1:1-${exactVerseCount}`
     : `${apiParam}+${chapter}`;
   try {
     const res = await fetch(
