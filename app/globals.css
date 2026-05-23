@@ -20,6 +20,9 @@
   --green-hi:#86efac;
   --live:    #c94e28;
 
+  /* ── Red letter — words of Jesus ── */
+  --jesus: #f87171;
+
   /* ── Movement accents (muted, sacred — not loud) ── */
   /* Companion: The Word interpreted — quiet blue-grey of contemplation */
   --companion:    #8fa8c4;
@@ -136,3 +139,7 @@ h3 { font-family: 'IM Fell English', serif; font-size: 1.3rem; color: var(--crea
   .nav-links { gap: 16px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .nav-links .nav-divider { display: none; }
 }
+
+/* ── Red letter — words of Jesus ── */
+.words-of-jesus { color: var(--jesus); }
+[data-red-letter="false"] .words-of-jesus { color: inherit; }

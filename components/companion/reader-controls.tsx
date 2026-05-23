@@ -11,12 +11,21 @@ interface ReaderControlsProps {
   chapter: number;
   currentVersion: BibleVersion;
   isAuthenticated: boolean;
+  showRedLetter: boolean;
 }
 
-export function ReaderControls({ bookSlug, bookName, chapter, currentVersion, isAuthenticated }: ReaderControlsProps) {
+export function ReaderControls({
+  bookSlug,
+  bookName,
+  chapter,
+  currentVersion,
+  isAuthenticated,
+  showRedLetter: initialRedLetter,
+}: ReaderControlsProps) {
   const [showNavigator, setShowNavigator] = useState(false);
   const [showVersionPicker, setShowVersionPicker] = useState(false);
   const [currentVerse, setCurrentVerse] = useState<number | undefined>(undefined);
+  const [redLetter, setRedLetter] = useState(initialRedLetter);
 
   // Pick up the verse from the URL hash, and from same-page scroll events
   useEffect(() => {
@@ -37,6 +46,12 @@ export function ReaderControls({ bookSlug, bookName, chapter, currentVersion, is
       window.removeEventListener('verse-navigate', onVerseNavigate);
     };
   }, []);
+
+  function toggleRedLetter() {
+    const next = !redLetter;
+    setRedLetter(next);
+    window.dispatchEvent(new CustomEvent('red-letter-toggle', { detail: { enabled: next } }));
+  }
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 28, flexWrap: 'wrap' }}>
@@ -111,6 +126,35 @@ export function ReaderControls({ bookSlug, bookName, chapter, currentVersion, is
         )}
       </div>
 
+      {/* Red letter toggle — only shown when authenticated */}
+      {isAuthenticated && (
+        <button
+          onClick={toggleRedLetter}
+          aria-label={redLetter ? 'Hide red letter (words of Jesus)' : 'Show red letter (words of Jesus)'}
+          title={redLetter ? 'Red letter on' : 'Red letter off'}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5,
+            background: redLetter ? 'rgba(248,113,113,0.12)' : 'rgba(255,255,255,0.04)',
+            border: `1px solid ${redLetter ? 'rgba(248,113,113,0.35)' : 'var(--faint)'}`,
+            borderRadius: 20,
+            padding: '5px 10px',
+            cursor: 'pointer',
+            fontSize: 11,
+            fontWeight: 600,
+            letterSpacing: '0.06em',
+            color: redLetter ? 'var(--jesus)' : 'var(--stone)',
+            fontFamily: "'DM Sans', sans-serif",
+            transition: 'background 0.1s, border-color 0.1s, color 0.1s',
+            alignSelf: 'center',
+          }}
+        >
+          <RedLetterDot active={redLetter} />
+          Red Letter
+        </button>
+      )}
+
       {showNavigator && (
         <BibleNavigator
           currentBook={bookSlug}
@@ -121,6 +165,19 @@ export function ReaderControls({ bookSlug, bookName, chapter, currentVersion, is
         />
       )}
     </div>
+  );
+}
+
+function RedLetterDot({ active }: { active: boolean }) {
+  return (
+    <span style={{
+      display: 'inline-block',
+      width: 6,
+      height: 6,
+      borderRadius: '50%',
+      background: active ? 'var(--jesus)' : 'var(--stone)',
+      transition: 'background 0.15s',
+    }} />
   );
 }
 
