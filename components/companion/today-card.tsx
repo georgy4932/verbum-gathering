@@ -6,12 +6,14 @@ import { useRouter } from 'next/navigation';
 import { markDayComplete } from '@/app/actions/plans';
 import { passageToReaderUrl } from '@/lib/reading-plans/passage-url';
 import type { ActivePlan } from '@/app/actions/plans';
+import type { UserReflection } from '@/app/actions/reflections';
 
 interface TodayCardProps {
   activePlan: ActivePlan;
+  todayReflection: UserReflection | null;
 }
 
-export function TodayCard({ activePlan }: TodayCardProps) {
+export function TodayCard({ activePlan, todayReflection }: TodayCardProps) {
   const [marking, setMarking] = useState(false);
   const router = useRouter();
 
@@ -147,6 +149,48 @@ export function TodayCard({ activePlan }: TodayCardProps) {
           You have completed this plan. Well done.
         </p>
       )}
+
+      {/* Reflection strip */}
+      <div style={{
+        marginTop: 20, paddingTop: 16,
+        borderTop: '1px solid rgba(143,168,196,0.1)',
+      }}>
+        {todayReflection ? (
+          <div>
+            <p style={{
+              fontSize: 10, fontWeight: 700, letterSpacing: '0.25em',
+              textTransform: 'uppercase', color: 'var(--companion)', margin: '0 0 6px',
+            }}>
+              Today&rsquo;s Reflection
+            </p>
+            <p style={{
+              fontSize: 14, color: 'var(--stone)', lineHeight: 1.7,
+              fontFamily: "'IM Fell English', serif", fontStyle: 'italic',
+              margin: '0 0 8px',
+            }}>
+              &ldquo;{todayReflection.content.length > 120
+                ? todayReflection.content.slice(0, 120) + '…'
+                : todayReflection.content}&rdquo;
+            </p>
+            <Link
+              href={`/companion/plans/${plan_id}`}
+              style={{ fontSize: 12, color: 'var(--companion)', textDecoration: 'none', letterSpacing: '0.04em' }}
+            >
+              Edit reflection →
+            </Link>
+          </div>
+        ) : (
+          <Link
+            href={`/companion/plans/${plan_id}`}
+            style={{
+              fontSize: 13, color: 'var(--stone)', textDecoration: 'none',
+              opacity: 0.65, letterSpacing: '0.02em',
+            }}
+          >
+            Reflect on today&rsquo;s reading →
+          </Link>
+        )}
+      </div>
     </div>
   );
 }
