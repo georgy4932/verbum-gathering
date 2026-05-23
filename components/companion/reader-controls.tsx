@@ -74,10 +74,14 @@ export function ReaderControls({
       {/* ── Reference area: chapter heading + verse picker ── */}
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 0 }}>
 
-        {/* Book + Chapter → full Bible navigator */}
+        {/* Reference pill: "John 3" or "John 3:16" → full Bible navigator */}
         <button
           onClick={openNavigator}
-          aria-label={`Navigate Bible. Currently ${bookName} chapter ${chapter}`}
+          aria-label={
+            currentVerse
+              ? `Navigate Bible. Currently ${bookName} ${chapter}:${currentVerse}`
+              : `Navigate Bible. Currently ${bookName} chapter ${chapter}`
+          }
           aria-haspopup="dialog"
           style={{
             background: 'none',
@@ -94,7 +98,10 @@ export function ReaderControls({
             color: 'var(--cream)',
           }}
         >
-          {bookName} {chapter}
+          {bookName}{' '}
+          <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+            {chapter}{currentVerse ? `:${currentVerse}` : ''}
+          </span>
           <span style={{
             display: 'inline-flex', alignItems: 'center',
             color: 'var(--stone)', verticalAlign: 'middle', lineHeight: 0,
@@ -103,27 +110,22 @@ export function ReaderControls({
           </span>
         </button>
 
-        {/* Verse indicator → current-chapter verse picker */}
+        {/* Verse grid trigger → current-chapter verse picker */}
         <button
           onClick={openVersePicker}
-          aria-label={currentVerse ? `Verse ${currentVerse} — tap to jump to another verse` : 'Jump to a verse in this chapter'}
+          aria-label="Jump to a verse in this chapter"
           aria-haspopup="dialog"
           style={{
             background: showVersePicker ? 'rgba(143,168,196,0.1)' : 'none',
             border: 'none',
-            padding: '2px 6px 2px 4px',
-            marginLeft: 1,
+            padding: '4px 6px',
+            marginLeft: 2,
             cursor: 'pointer',
             display: 'inline-flex',
             alignItems: 'center',
-            gap: 2,
-            fontFamily: "'DM Sans', sans-serif",
-            fontSize: 'clamp(1rem, 2.5vw, 1.5rem)',
-            lineHeight: 1.05,
-            color: showVersePicker ? 'var(--companion)' : currentVerse ? 'var(--stone)' : 'rgba(122,114,100,0.45)',
+            color: showVersePicker ? 'var(--companion)' : 'rgba(122,114,100,0.5)',
             borderRadius: 6,
             transition: 'background 0.12s, color 0.12s',
-            verticalAlign: 'baseline',
             alignSelf: 'center',
           }}
           onMouseOver={(e) => {
@@ -132,19 +134,10 @@ export function ReaderControls({
           }}
           onMouseOut={(e) => {
             e.currentTarget.style.background = showVersePicker ? 'rgba(143,168,196,0.1)' : 'none';
-            e.currentTarget.style.color = showVersePicker
-              ? 'var(--companion)'
-              : currentVerse ? 'var(--stone)' : 'rgba(122,114,100,0.45)';
+            e.currentTarget.style.color = showVersePicker ? 'var(--companion)' : 'rgba(122,114,100,0.5)';
           }}
         >
-          {currentVerse ? (
-            <>
-              <span style={{ fontVariantNumeric: 'tabular-nums' }}>:{currentVerse}</span>
-              <ChevronIcon size={10} />
-            </>
-          ) : (
-            <VerseGridIcon />
-          )}
+          <VerseGridIcon />
         </button>
       </div>
 
