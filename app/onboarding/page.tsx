@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 
-export default function OnboardingPage() {
+function OnboardingForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [displayName, setDisplayName] = useState('');
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
@@ -42,7 +43,11 @@ export default function OnboardingPage() {
       return;
     }
 
-    router.push('/');
+    // Honour any `next` param threaded through from the callback
+    // (e.g. /auth/reset-password for the password-reset flow).
+    const next = searchParams.get('next');
+    const dest = next && next.startsWith('/') ? next : '/';
+    router.push(dest);
     router.refresh();
   }
 
@@ -103,5 +108,13 @@ export default function OnboardingPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense>
+      <OnboardingForm />
+    </Suspense>
   );
 }

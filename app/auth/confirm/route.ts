@@ -1,5 +1,12 @@
-// Handles token_hash-based email confirmation (non-PKCE path).
-// Supabase email templates can be configured to point here.
+// Handles token_hash-based verification (non-PKCE path).
+//
+// This route is NOT used by the standard signup flow. Email confirmation
+// after signUp() uses emailRedirectTo → /auth/callback (PKCE code exchange).
+//
+// This route is available as a fallback if Supabase email templates are
+// manually configured to use token_hash links (type=email or type=recovery).
+// To activate it, set the Confirmation URL template in Supabase dashboard to:
+//   https://your-domain.com/auth/confirm?token_hash={{ .TokenHash }}&type=email
 import { type NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';

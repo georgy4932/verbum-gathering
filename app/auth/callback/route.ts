@@ -34,8 +34,12 @@ export async function GET(request: Request) {
         .maybeSingle();
 
       // If the user has no display_name yet, send to onboarding.
+      // Preserve `next` so after onboarding the user reaches the intended
+      // destination (e.g. /auth/reset-password for the password-reset flow).
       if (!profile?.display_name) {
-        return NextResponse.redirect(new URL('/onboarding', requestUrl.origin));
+        const onboardingUrl = new URL('/onboarding', requestUrl.origin);
+        if (next !== '/') onboardingUrl.searchParams.set('next', next);
+        return NextResponse.redirect(onboardingUrl);
       }
 
       // Honour the `next` param (e.g. password-reset flow).

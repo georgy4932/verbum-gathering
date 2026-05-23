@@ -79,17 +79,11 @@ export default function SignUpPage() {
       return;
     }
 
-    // Save display_name and username to profile if signUp succeeded
-    // (Supabase may create a session immediately when confirm email is disabled,
-    //  or it may not — handle both cases)
-    if (data.user) {
-      await supabaseBrowser.from('profiles').upsert({
-        id: data.user.id,
-        display_name: form.display_name.trim(),
-        email: form.email.trim(),
-        ...(form.username ? { username: form.username } : {}),
-      }, { onConflict: 'id' });
-    }
+    // The DB trigger (handle_new_user) creates the profile row from
+    // raw_user_meta_data immediately on INSERT to auth.users — no
+    // client-side upsert needed. With email confirmation required there
+    // is no session here, so any direct profiles write would be rejected
+    // by RLS anyway.
 
     setLoading(false);
     setDone(true);
