@@ -6,16 +6,21 @@ import Link from 'next/link';
 import { markDayComplete, leavePlan } from '@/app/actions/plans';
 import { passageToReaderUrl } from '@/lib/reading-plans/passage-url';
 import type { ReadingPlan, UserPlanProgress } from '@/app/actions/plans';
+import type { UserReflection } from '@/app/actions/reflections';
+import { ReflectionEditor } from '@/components/companion/reflection-editor';
 
 interface PlanInteractiveProps {
   plan: ReadingPlan;
   progress: UserPlanProgress;
   viewDay: number;
+  reflections: UserReflection[];
 }
 
-export function PlanInteractive({ plan, progress, viewDay }: PlanInteractiveProps) {
+export function PlanInteractive({ plan, progress, viewDay, reflections }: PlanInteractiveProps) {
   const [completedDays, setCompletedDays] = useState(new Set(progress.completed_days));
   const [currentDay, setCurrentDay] = useState(progress.current_day);
+  const reflectionMap = new Map(reflections.map((r) => [r.plan_day, r]));
+  const viewDayReflection = reflectionMap.get(viewDay) ?? null;
   const [marking, setMarking] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [leaving, setLeaving] = useState(false);
@@ -129,6 +134,14 @@ export function PlanInteractive({ plan, progress, viewDay }: PlanInteractiveProp
             You have completed this plan. Well done.
           </p>
         )}
+
+        <ReflectionEditor
+          key={viewDay}
+          planId={progress.plan_id}
+          planDay={viewDay}
+          passageRef={passages[0] ?? null}
+          reflection={viewDayReflection}
+        />
       </div>
 
       {/* Progress summary */}
@@ -169,11 +182,12 @@ export function PlanInteractive({ plan, progress, viewDay }: PlanInteractiveProp
             const done = completedDays.has(day);
             const isCurrent = day === currentDay;
             const isViewing = day === viewDay;
+            const hasReflection = reflectionMap.has(day);
             return (
               <button
                 key={day}
                 onClick={() => jumpToDay(day)}
-                title={`Day ${day}${done ? ' — complete' : isCurrent ? ' — today' : ''}`}
+                title={`Day ${day}${done ? ' — complete' : isCurrent ? ' — today' : ''}${hasReflection ? ' — reflection written' : ''}`}
                 style={{
                   width: '100%',
                   aspectRatio: '1',
@@ -196,9 +210,17 @@ export function PlanInteractive({ plan, progress, viewDay }: PlanInteractiveProp
                   fontFamily: "'DM Sans', sans-serif",
                   fontWeight: isCurrent || isViewing ? 700 : 400,
                   padding: 0,
+                  position: 'relative',
                 }}
               >
                 {done ? '✓' : day}
+                {hasReflection && (
+                  <span style={{
+                    position: 'absolute', bottom: 3, right: 3,
+                    width: 4, height: 4, borderRadius: '50%',
+                    background: 'var(--companion)', opacity: 0.7,
+                  }} />
+                )}
               </button>
             );
           })}

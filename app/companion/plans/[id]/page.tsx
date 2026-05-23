@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getPlanWithProgress, startReadingPlan } from '@/app/actions/plans';
+import { getReflectionsForPlan } from '@/app/actions/reflections';
 import { PlanInteractive } from '@/components/companion/plan-interactive';
 import { StartPlanButton } from '@/components/companion/start-plan-button';
 
@@ -30,7 +31,10 @@ export default async function PlanDetailPage({
   const { id } = await params;
   const { day: dayParam } = await searchParams;
 
-  const { plan, progress } = await getPlanWithProgress(id);
+  const [{ plan, progress }, reflections] = await Promise.all([
+    getPlanWithProgress(id),
+    getReflectionsForPlan(id),
+  ]);
   if (!plan) notFound();
 
   const viewDay = dayParam
@@ -111,6 +115,7 @@ export default async function PlanDetailPage({
             plan={plan}
             progress={progress}
             viewDay={viewDay}
+            reflections={reflections}
           />
         ) : (
           /* Not enrolled: show a preview of Day 1 */
