@@ -92,12 +92,26 @@ function paraStyleToIndent(style: string): number {
   return 0;
 }
 
+// Collect all para nodes in document order regardless of nesting depth.
+// Some API.Bible translations wrap para nodes inside a <chapter> container
+// while others return a flat array. This handles both without fragility.
+function collectParas(nodes: ApiJsonNode[], result: ApiJsonNode[] = []): ApiJsonNode[] {
+  for (const node of nodes) {
+    if (node.name === 'para') {
+      result.push(node);
+    } else if (node.items) {
+      collectParas(node.items, result);
+    }
+  }
+  return result;
+}
+
 // ── Rich JSON parser — USX/AST format ────────────────────────────────────────
 // API.Bible content-type=json returns a USX Abstract Syntax Tree.
 // CRITICAL: In USX, a <verse> node is a BOUNDARY MARKER, not a container.
 // The verse text lives as SIBLING nodes after the marker, not inside it.
-// We walk the tree in document order:
-//   - Each top-level <para> node defines a line (style = q1/q2/q3/p/b/etc.)
+// We walk para nodes in document order:
+//   - Each <para> node defines a line (style = q1/q2/q3/p/b/etc.)
 //   - <b> para nodes are stanza breaks
 //   - <char style="wj"> nodes mark words of Jesus
 function parseApiBibleJsonRich(content: ApiJsonNode[]): VerseContent[] {
@@ -165,8 +179,7 @@ function parseApiBibleJsonRich(content: ApiJsonNode[]): VerseContent[] {
     if (node.items) node.items.forEach(collectInPara);
   }
 
-  for (const node of content) {
-    if (node.name !== 'para') continue;
+  for (const node of collectParas(content)) {
     const style = node.attrs?.style ?? 'p';
 
     // New para = end of previous para's line
