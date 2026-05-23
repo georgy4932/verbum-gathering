@@ -103,7 +103,7 @@ export function TodayCard({ activePlan, todayReflection }: TodayCardProps) {
                   display: 'inline-flex', alignItems: 'center', gap: 4,
                   padding: '5px 12px', borderRadius: 8,
                   border: '1px solid var(--faint)',
-                  background: 'rgba(255,255,255,0.03)',
+                  background: 'var(--card-surface)',
                   color: 'var(--cream)',
                   fontSize: 14, textDecoration: 'none',
                   fontFamily: "'IM Fell English', serif",

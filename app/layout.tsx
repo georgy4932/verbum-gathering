@@ -2,11 +2,15 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Link from "next/link";
 import { getCurrentUserProfile } from "@/lib/profile";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export const metadata: Metadata = {
   title: "VerbumScribe",
   description: "The Word, with you. A quiet place for Scripture, prayer, teaching, and worship.",
 };
+
+// Runs synchronously before body paint — prevents flash of wrong theme.
+const themeScript = `(function(){try{var p=localStorage.getItem('verbum-theme')||'system';var r=p==='system'?(window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'):p;document.documentElement.setAttribute('data-theme',r);document.documentElement.setAttribute('data-theme-pref',p);}catch(e){}})();`;
 
 export default async function RootLayout({
   children,
@@ -21,6 +25,10 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
+      {/* Anti-FOUC: set data-theme before first paint */}
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body>
         <header className="site-header">
           <div className="container nav">
@@ -35,6 +43,7 @@ export default async function RootLayout({
               <span className="nav-divider" aria-hidden="true" />
               <Link href="/today">Today</Link>
               <span className="nav-divider" aria-hidden="true" />
+              <ThemeToggle />
               {user ? (
                 <Link
                   href="/settings/profile"

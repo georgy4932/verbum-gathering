@@ -2,47 +2,127 @@
 
 @import url('https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
 
+/* ─────────────────────────────────────────────────────────────────────────
+   THEME TOKENS — Dark (default, near-black candlelit)
+   ───────────────────────────────────────────────────────────────────────── */
 :root {
-  /* ── Core palette ── */
-  --bg:      #0f0d0a;
-  --bg1:     #161410;
-  --bg2:     #1f1c14;
-  --bg3:     #2a261c;
+  /* surfaces */
+  --bg:    #0f0d0a;
+  --bg1:   #161410;
+  --bg2:   #1f1c14;
+  --bg3:   #2a261c;
+
+  /* text */
+  --cream: #ede5d0;
+  --muted: #b8ad98;
+  --stone: #7a7264;
+
+  /* borders */
+  --faint:  #2e2a20;
+  --faint2: #383220;
+
+  /* accent */
   --gold:    #c8a96a;
   --gold-lo: #6b5530;
   --gold-hi: #dfc48a;
-  --cream:   #ede5d0;
-  --muted:   #b8ad98;
-  --stone:   #7a7264;
-  --faint:   #2e2a20;
-  --faint2:  #383220;
-  --green:   #5ea773;
-  --green-hi:#86efac;
-  --live:    #c94e28;
 
-  /* ── Red letter — warm manuscript tone, readable on dark background ── */
-  --jesus: #c07060;
+  /* semantic */
+  --green:    #5ea773;
+  --green-hi: #86efac;
+  --live:     #c94e28;
+  --jesus:    #c07060;
 
-  /* ── Movement accents (muted, sacred — not loud) ── */
-  /* Companion: The Word interpreted — quiet blue-grey of contemplation */
+  /* movement accents */
   --companion:    #8fa8c4;
   --companion-lo: #2e3f54;
-
-  /* Gathering: The Word shared — existing living green */
   --gathering:    #5ea773;
   --gathering-lo: #1f3d2a;
+  --studio:       #c8a96a;
+  --studio-lo:    #3d2f12;
+  --worship:      #9b7cc8;
+  --worship-lo:   #2f1f4a;
 
-  /* Studio: The Word proclaimed — existing gold of proclamation */
-  --studio:    #c8a96a;
-  --studio-lo: #3d2f12;
-
-  /* Worship: The Word embodied — deep violet of devotion */
-  --worship:    #9b7cc8;
-  --worship-lo: #2f1f4a;
+  /* component-level tokens */
+  --bg-header:       rgba(15,13,10,0.92);
+  --card-surface:    rgba(255,255,255,0.025);
+  --card-surface-ho: rgba(255,255,255,0.045);
+  --glow:            rgba(200,169,106,0.07);
+  --toggle-track:    #1a1714;
+  --toggle-thumb:    #2e2a22;
+  --toggle-border:   #2e2a20;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────
+   THEME TOKENS — Light (warm parchment / quiet daylight)
+   ───────────────────────────────────────────────────────────────────────── */
+[data-theme="light"] {
+  /* surfaces */
+  --bg:    #f5f0e8;
+  --bg1:   #ede9dc;
+  --bg2:   #e4ddd0;
+  --bg3:   #d9d0be;
+
+  /* text */
+  --cream: #26201a;
+  --muted: #4e4232;
+  --stone: #7a6e58;
+
+  /* borders */
+  --faint:  #cec6b0;
+  --faint2: #bdb4a0;
+
+  /* accent — deeper gold reads on parchment */
+  --gold:    #8a6912;
+  --gold-lo: #c4a84a;
+  --gold-hi: #6b5010;
+
+  /* semantic */
+  --green:    #2e7a4a;
+  --green-hi: #1e5c38;
+  --live:     #a83010;
+  --jesus:    #923020;
+
+  /* movement accents — deeper hues for parchment contrast */
+  --companion:    #4a6e8c;
+  --companion-lo: #b8ccd8;
+  --gathering:    #2e7a4a;
+  --gathering-lo: #b4d8c4;
+  --studio:       #8a6912;
+  --studio-lo:    #e0cc80;
+  --worship:      #6a4a9c;
+  --worship-lo:   #d0c0ec;
+
+  /* component-level tokens */
+  --bg-header:       rgba(245,240,232,0.94);
+  --card-surface:    rgba(0,0,0,0.022);
+  --card-surface-ho: rgba(0,0,0,0.042);
+  --glow:            rgba(138,105,18,0.05);
+  --toggle-track:    #ddd8cc;
+  --toggle-thumb:    #f5f0e8;
+  --toggle-border:   #cec6b0;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   SMOOTH THEME TRANSITION — added by JS during switch, removed after 350ms
+   ───────────────────────────────────────────────────────────────────────── */
+.theme-transitioning,
+.theme-transitioning *,
+.theme-transitioning *::before,
+.theme-transitioning *::after {
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    color 0.25s ease,
+    fill 0.25s ease,
+    stroke 0.25s ease,
+    opacity 0.2s ease !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   BASE
+   ───────────────────────────────────────────────────────────────────────── */
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-html { font-size: 16px; -webkit-font-smoothing: antialiased; background: #0f0d0a; scroll-behavior: smooth; }
+html { font-size: 16px; -webkit-font-smoothing: antialiased; background: var(--bg); scroll-behavior: smooth; }
 body { background: var(--bg); color: var(--cream); font-family: 'DM Sans', sans-serif; font-weight: 400; line-height: 1.6; min-height: 100vh; }
 a { color: inherit; text-decoration: none; }
 button { font: inherit; }
@@ -50,7 +130,10 @@ button { font: inherit; }
 .container { width: min(1100px, calc(100% - 2rem)); margin: 0 auto; }
 .narrow { width: min(820px, calc(100% - 2rem)); margin: 0 auto; }
 
-.site-header { position: sticky; top: 0; z-index: 100; background: rgba(15,13,10,0.92); backdrop-filter: blur(16px); border-bottom: 1px solid var(--faint); height: 64px; display: flex; align-items: center; }
+/* ─────────────────────────────────────────────────────────────────────────
+   HEADER & NAV
+   ───────────────────────────────────────────────────────────────────────── */
+.site-header { position: sticky; top: 0; z-index: 100; background: var(--bg-header); backdrop-filter: blur(16px); border-bottom: 1px solid var(--faint); height: 64px; display: flex; align-items: center; }
 .nav { display: flex; align-items: center; justify-content: space-between; }
 .brand { font-family: 'IM Fell English', serif; font-size: 15px; letter-spacing: 0.25em; color: var(--gold); }
 .brand:hover { opacity: 0.8; }
@@ -58,21 +141,28 @@ button { font: inherit; }
 .nav-links a { font-size: 13px; font-weight: 500; color: var(--stone); letter-spacing: 0.06em; transition: color 0.2s; }
 .nav-links a:hover { color: var(--cream); }
 .nav-links a[data-active="true"] { color: var(--cream); }
-
-/* Movement divider in nav */
 .nav-divider { width: 1px; height: 16px; background: var(--faint); margin: 0 4px; }
 
+/* ─────────────────────────────────────────────────────────────────────────
+   TYPOGRAPHY
+   ───────────────────────────────────────────────────────────────────────── */
 h1 { font-family: 'IM Fell English', serif; font-size: clamp(2.4rem, 5vw, 4.2rem); line-height: 1.02; color: var(--cream); margin: 0 0 1rem; }
 h2 { font-family: 'IM Fell English', serif; font-size: clamp(1.6rem, 3vw, 2.4rem); color: var(--cream); margin: 0 0 0.75rem; line-height: 1.1; }
 h3 { font-family: 'IM Fell English', serif; font-size: 1.3rem; color: var(--cream); margin: 0 0 0.5rem; line-height: 1.2; }
 
 .eyebrow { font-size: 10px; font-weight: 600; letter-spacing: 0.4em; color: var(--gold-lo); text-transform: uppercase; margin-bottom: 20px; display: block; }
 
+/* ─────────────────────────────────────────────────────────────────────────
+   HERO
+   ───────────────────────────────────────────────────────────────────────── */
 .hero { padding: 80px 0 60px; position: relative; overflow: hidden; }
-.hero::before { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -60%); width: 700px; height: 700px; background: radial-gradient(ellipse, rgba(200,169,106,0.07) 0%, transparent 65%); pointer-events: none; }
+.hero::before { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -60%); width: 700px; height: 700px; background: radial-gradient(ellipse, var(--glow) 0%, transparent 65%); pointer-events: none; }
 .hero-text { font-size: 17px; color: var(--stone); max-width: 560px; line-height: 1.75; margin-bottom: 36px; }
 .hero-actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 
+/* ─────────────────────────────────────────────────────────────────────────
+   BUTTONS & LINKS
+   ───────────────────────────────────────────────────────────────────────── */
 .button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; border-radius: 9px; padding: 13px 26px; cursor: pointer; transition: all 0.2s; border: none; }
 .button.primary { background: var(--gold); color: var(--bg); }
 .button.primary:hover { background: var(--gold-hi); }
@@ -81,11 +171,17 @@ h3 { font-family: 'IM Fell English', serif; font-size: 1.3rem; color: var(--crea
 .text-link { font-size: 13px; font-weight: 500; color: var(--gold); display: inline-flex; align-items: center; gap: 4px; transition: gap 0.2s; }
 .text-link:hover { gap: 8px; }
 
+/* ─────────────────────────────────────────────────────────────────────────
+   SECTIONS
+   ───────────────────────────────────────────────────────────────────────── */
 .section { padding: 72px 0; border-top: 1px solid var(--faint); }
 .section.alt { background: var(--bg1); }
 .section-heading { margin-bottom: 40px; }
 .section-heading p { font-size: 15px; color: var(--stone); margin-top: 6px; }
 
+/* ─────────────────────────────────────────────────────────────────────────
+   CARDS
+   ───────────────────────────────────────────────────────────────────────── */
 .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
 .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .card { background: var(--bg2); border: 1px solid var(--faint); border-radius: 12px; padding: 28px; display: flex; flex-direction: column; gap: 12px; transition: border-color 0.2s, background 0.2s; }
@@ -97,39 +193,53 @@ h3 { font-family: 'IM Fell English', serif; font-size: 1.3rem; color: var(--crea
 .label { font-size: 9px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold-lo); margin-bottom: 10px; display: block; }
 .devotion-card { gap: 0; padding: 0; overflow: hidden; }
 
-/* ── Scripture block — canonical display across all movements ── */
+/* ─────────────────────────────────────────────────────────────────────────
+   SCRIPTURE BLOCK
+   ───────────────────────────────────────────────────────────────────────── */
 .scripture-block { border-left: 2px solid var(--gold-lo); padding: 18px 20px; background: rgba(200,169,106,0.04); border-radius: 0 8px 8px 0; }
 .scripture-block .ref { font-size: 10px; font-weight: 700; letter-spacing: 0.3em; text-transform: uppercase; color: var(--gold-lo); margin-bottom: 10px; display: block; }
 .scripture-block .text { font-family: 'IM Fell English', serif; font-style: italic; font-size: 1.05rem; color: var(--muted); line-height: 1.85; }
 
-/* ── Movement card — used on hub pages ── */
-.movement-card { border: 1px solid var(--faint); border-radius: 20px; padding: 28px; background: rgba(255,255,255,0.025); display: flex; flex-direction: column; gap: 14px; text-decoration: none; color: inherit; transition: border-color 0.25s, background 0.25s; }
-.movement-card:hover { background: rgba(255,255,255,0.04); }
+/* ─────────────────────────────────────────────────────────────────────────
+   MOVEMENT CARDS
+   ───────────────────────────────────────────────────────────────────────── */
+.movement-card { border: 1px solid var(--faint); border-radius: 20px; padding: 28px; background: var(--card-surface); display: flex; flex-direction: column; gap: 14px; text-decoration: none; color: inherit; transition: border-color 0.25s, background 0.25s; }
+.movement-card:hover { background: var(--card-surface-ho); }
 .movement-card .movement-label { font-size: 10px; font-weight: 700; letter-spacing: 0.32em; text-transform: uppercase; }
 .movement-card h2 { font-family: 'IM Fell English', serif; font-size: 1.35rem; margin: 0; line-height: 1.2; }
 .movement-card p { font-size: 14px; color: var(--stone); line-height: 1.75; margin: 0; }
 .movement-card .enter { font-size: 12px; color: var(--muted); margin-top: auto; letter-spacing: 0.04em; }
 
-/* Per-movement card accents */
 .movement-card.companion { border-color: var(--companion-lo); }
-.movement-card.companion:hover { border-color: var(--companion); background: rgba(143,168,196,0.05); }
+.movement-card.companion:hover { border-color: var(--companion); }
 .movement-card.companion .movement-label { color: var(--companion); }
 .movement-card.gathering { border-color: var(--gathering-lo); }
-.movement-card.gathering:hover { border-color: var(--gathering); background: rgba(94,167,115,0.05); }
+.movement-card.gathering:hover { border-color: var(--gathering); }
 .movement-card.gathering .movement-label { color: var(--gathering); }
 .movement-card.studio { border-color: var(--studio-lo); }
-.movement-card.studio:hover { border-color: var(--studio); background: rgba(200,169,106,0.05); }
+.movement-card.studio:hover { border-color: var(--studio); }
 .movement-card.studio .movement-label { color: var(--studio); }
 .movement-card.worship { border-color: var(--worship-lo); }
-.movement-card.worship:hover { border-color: var(--worship); background: rgba(155,124,200,0.05); }
+.movement-card.worship:hover { border-color: var(--worship); }
 .movement-card.worship .movement-label { color: var(--worship); }
 
-/* ── Page header — consistent across all movement pages ── */
+/* ─────────────────────────────────────────────────────────────────────────
+   PAGE HEADER
+   ───────────────────────────────────────────────────────────────────────── */
 .page-header { padding: 3.5rem 0 2.5rem; }
 .page-header .movement-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 0.4em; text-transform: uppercase; display: block; margin-bottom: 14px; }
 .page-header h1 { margin-bottom: 16px; }
 .page-header .subtitle { font-size: 1.05rem; color: var(--stone); line-height: 1.75; max-width: 640px; margin: 0; }
 
+/* ─────────────────────────────────────────────────────────────────────────
+   RED LETTER
+   ───────────────────────────────────────────────────────────────────────── */
+.words-of-jesus { color: var(--jesus); }
+[data-red-letter="false"] .words-of-jesus { color: inherit; }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   RESPONSIVE
+   ───────────────────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .container { padding: 0 20px; }
   .hero { padding: 60px 0 48px; }
@@ -139,7 +249,3 @@ h3 { font-family: 'IM Fell English', serif; font-size: 1.3rem; color: var(--crea
   .nav-links { gap: 16px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .nav-links .nav-divider { display: none; }
 }
-
-/* ── Red letter — words of Jesus ── */
-.words-of-jesus { color: var(--jesus); }
-[data-red-letter="false"] .words-of-jesus { color: inherit; }
