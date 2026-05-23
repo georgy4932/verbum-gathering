@@ -12,6 +12,7 @@ export interface PlanDay {
 
 export interface ReadingPlan {
   id: string;
+  slug: string | null;
   title: string;
   description: string | null;
   total_days: number;
@@ -50,7 +51,7 @@ export async function getPublicPlans(): Promise<Omit<ReadingPlan, 'passages'>[]>
   const { supabase } = await getAuthUser();
   const { data } = await supabase
     .from('reading_plans')
-    .select('id, title, description, total_days, is_public, created_at')
+    .select('id, slug, title, description, total_days, is_public, created_at')
     .eq('is_public', true)
     .order('created_at', { ascending: true });
   return (data ?? []) as Omit<ReadingPlan, 'passages'>[];
