@@ -71,33 +71,58 @@ export const SLUG_TO_USFM: Record<string, string> = {
 
 const API_BASE = 'https://api.scripture.api.bible/v1';
 
-// ── Parse API.Bible text content into verse array ─────────────────────────────
-// API.Bible text-mode chapter content with include-verse-numbers=true embeds
-// verse numbers as [N] markers and ¶ for paragraph breaks.
-function parseApiBibleText(content: string): BibleVerse[] {
-  // Strip paragraph markers and normalize whitespace
-  const cleaned = content.replace(/¶\s*/g, '').replace(/\s+/g, ' ').trim();
+// ── Parse API.Bible JSON content (structured AST) into verse array ────────────
+// API.Bible with content-type=json returns an AST where verse nodes carry
+// attrs.number and their child nodes contain the text. This is far more
+// reliable than text-mode [N] marker splitting.
 
-  // Split on [N] verse markers
-  const parts = cleaned.split(/\[(\d+)\]/);
-  // parts = ['preamble?', '1', 'verse text', '2', 'verse text', ...]
+interface ApiJsonNode {
+  type?: string;
+  name?: string;
+  text?: string;
+  items?: ApiJsonNode[];
+  attrs?: Record<string, string>;
+}
+
+function nodeText(node: ApiJsonNode): string {
+  if (node.name === 'note') return '';        // skip footnotes
+  if (node.name === 'ref') return '';         // skip cross-ref tags
+  if (typeof node.text === 'string') return node.text;
+  if (node.items) return node.items.map(nodeText).join('');
+  return '';
+}
+
+function parseApiBibleJson(content: ApiJsonNode[]): BibleVerse[] {
   const verses: BibleVerse[] = [];
-  for (let i = 1; i < parts.length - 1; i += 2) {
-    const num = parseInt(parts[i], 10);
-    const text = parts[i + 1].trim();
-    if (!isNaN(num) && text) verses.push({ verse: num, text });
-  }
 
-  // If [N] parsing yielded nothing, try bare "N " prefix pattern
-  if (verses.length === 0) {
-    const altParts = cleaned.split(/(?<!\w)(\d+)\s+/);
-    for (let i = 1; i < altParts.length - 1; i += 2) {
-      const num = parseInt(altParts[i], 10);
-      const text = altParts[i + 1].trim();
-      if (!isNaN(num) && text) verses.push({ verse: num, text });
+  function walk(node: ApiJsonNode) {
+    if (node.name === 'verse' && node.attrs?.number) {
+      const num = parseInt(node.attrs.number, 10);
+      if (!isNaN(num)) {
+        const raw = node.items ? node.items.map(nodeText).join('') : '';
+        const text = raw.replace(/\s+/g, ' ').trim();
+        if (text) verses.push({ verse: num, text });
+      }
+    } else if (node.items) {
+      node.items.forEach(walk);
     }
   }
 
+  content.forEach(walk);
+  return verses;
+}
+
+// Legacy text-mode parser kept as a last-resort fallback.
+function parseApiBibleText(content: string): BibleVerse[] {
+  const cleaned = content.replace(/¶\s*/g, '').replace(/\s+/g, ' ').trim();
+  const parts = cleaned.split(/\[(\d+)\]/);
+  const verses: BibleVerse[] = [];
+  // Include the final segment: loop to parts.length (not parts.length - 1)
+  for (let i = 1; i < parts.length; i += 2) {
+    const num = parseInt(parts[i], 10);
+    const text = (parts[i + 1] ?? '').trim();
+    if (!isNaN(num) && text) verses.push({ verse: num, text });
+  }
   return verses;
 }
 
@@ -115,8 +140,10 @@ async function fetchFromApiBible(
   if (!usfm) return null;
 
   const chapterId = `${usfm}.${chapter}`;
+  // Prefer JSON content-type — returns a structured AST with explicit verse nodes,
+  // eliminating the need to split a text blob on [N] markers (which is fragile).
   const url = `${API_BASE}/bibles/${bibleId}/chapters/${chapterId}` +
-    `?content-type=text&include-verse-numbers=true&include-titles=false` +
+    `?content-type=json&include-verse-numbers=true&include-titles=false` +
     `&include-chapter-numbers=false&include-notes=false`;
 
   try {
@@ -128,11 +155,22 @@ async function fetchFromApiBible(
     if (!res.ok) return null;
 
     const json = await res.json() as {
-      data: { content: string; reference: string };
+      data: { content: ApiJsonNode[] | string; reference: string };
     };
 
-    const content = json.data?.content ?? '';
-    const verses = parseApiBibleText(content);
+    let verses: BibleVerse[];
+    const content = json.data?.content;
+
+    if (Array.isArray(content)) {
+      // Structured JSON path — preferred
+      verses = parseApiBibleJson(content);
+    } else if (typeof content === 'string') {
+      // Unexpected text response — fall back to legacy parser
+      verses = parseApiBibleText(content);
+    } else {
+      return null;
+    }
+
     if (verses.length === 0) return null;
 
     const fullText = verses.map((v) => v.text).join(' ');
