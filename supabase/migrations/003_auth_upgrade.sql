@@ -133,9 +133,14 @@ DROP POLICY IF EXISTS "Profiles viewable"                        ON profiles;
 CREATE POLICY "Profiles viewable" ON profiles
   FOR SELECT USING (auth.uid() = id OR is_public = TRUE);
 
--- Only the authenticated owner may update or insert their own row.
+-- Only the authenticated owner may update their own row.
+-- USING checks the existing row before the update is applied;
+-- WITH CHECK validates the row after — prevents a user from
+-- updating id or any other column to impersonate another user.
 CREATE POLICY "Users update own profile" ON profiles
-  FOR UPDATE USING (auth.uid() = id);
+  FOR UPDATE
+  USING     (auth.uid() = id)
+  WITH CHECK (auth.uid() = id);
 
 CREATE POLICY "Users insert own profile" ON profiles
   FOR INSERT WITH CHECK (auth.uid() = id);
