@@ -297,12 +297,13 @@ export function VerseBlock({
             pointer-events: auto !important;
           }
           @keyframes verse-arrive {
-            0%   { box-shadow: inset 3px 0 0 var(--gold), 0 0 0 1px rgba(200,169,106,0.25); }
-            60%  { box-shadow: inset 3px 0 0 var(--gold), 0 0 0 1px rgba(200,169,106,0.10); }
+            0%   { box-shadow: inset 3px 0 0 rgba(200,169,106,0.9),  0 0 28px rgba(200,169,106,0.08); }
+            35%  { box-shadow: inset 3px 0 0 rgba(200,169,106,0.55), 0 0 12px rgba(200,169,106,0.04); }
             100% { box-shadow: none; }
           }
-          .verse-block:target {
-            animation: verse-arrive 2.2s ease forwards;
+          .verse-block:target,
+          .verse-block.verse-arrived {
+            animation: verse-arrive 2.4s cubic-bezier(0.4,0,0.6,1) forwards;
           }
         `}</style>
       </div>

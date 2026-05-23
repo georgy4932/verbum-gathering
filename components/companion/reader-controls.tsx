@@ -18,15 +18,24 @@ export function ReaderControls({ bookSlug, bookName, chapter, currentVersion, is
   const [showVersionPicker, setShowVersionPicker] = useState(false);
   const [currentVerse, setCurrentVerse] = useState<number | undefined>(undefined);
 
-  // Pick up the verse from the URL hash so the navigator can highlight it
+  // Pick up the verse from the URL hash, and from same-page scroll events
   useEffect(() => {
     function readHash() {
       const m = window.location.hash.match(/^#verse-(\d+)$/);
       setCurrentVerse(m ? parseInt(m[1], 10) : undefined);
     }
+    function onVerseNavigate(e: Event) {
+      setCurrentVerse((e as CustomEvent<{ verse: number }>).detail.verse);
+    }
     readHash();
     window.addEventListener('hashchange', readHash);
-    return () => window.removeEventListener('hashchange', readHash);
+    window.addEventListener('popstate', readHash);
+    window.addEventListener('verse-navigate', onVerseNavigate);
+    return () => {
+      window.removeEventListener('hashchange', readHash);
+      window.removeEventListener('popstate', readHash);
+      window.removeEventListener('verse-navigate', onVerseNavigate);
+    };
   }, []);
 
   return (
