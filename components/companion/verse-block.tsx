@@ -92,6 +92,7 @@ export function VerseBlock({
   const [color, setColor] = useState(initialColor);
   const [showPicker, setShowPicker] = useState(false);
   const [showStudyPanel, setShowStudyPanel] = useState(false);
+  const [panelAutoFocusNotes, setPanelAutoFocusNotes] = useState(false);
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
   const [, startTransition] = useTransition();
@@ -114,12 +115,11 @@ export function VerseBlock({
     });
   }, [passageRef]);
 
-  // Note — scroll to note editor
+  // Note — open study panel focused on notes
   const handleNote = useCallback(() => {
-    const el = document.getElementById('note-editor');
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    window.dispatchEvent(new CustomEvent('verse:note', { detail: { passageRef } }));
-  }, [passageRef]);
+    setPanelAutoFocusNotes(true);
+    setShowStudyPanel(true);
+  }, []);
 
   // Save verse
   const handleSave = useCallback(() => {
@@ -293,8 +293,9 @@ export function VerseBlock({
           verse={verseNum}
           verseText={text}
           isAuthenticated={isAuthenticated}
+          autoFocusNotes={panelAutoFocusNotes}
           triggerRef={verseNumRef}
-          onClose={() => setShowStudyPanel(false)}
+          onClose={() => { setShowStudyPanel(false); setPanelAutoFocusNotes(false); }}
         />
       )}
     </>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useTransition, useCallback, useId } from 'react';
 import Link from 'next/link';
-import { getNotesForVerse, generateStudyInsight } from '@/app/actions/companion';
+import { getNotesForVerse, generateStudyInsight, addCompanionNote } from '@/app/actions/companion';
 import { CROSS_REFERENCES, type CrossRefType } from '@/lib/bible/cross-references';
 import type { CompanionNote } from '@/lib/types/domain';
 
@@ -138,6 +138,7 @@ interface StudyPanelProps {
   verse: number;
   verseText: string;
   isAuthenticated: boolean;
+  autoFocusNotes?: boolean;
   triggerRef: React.RefObject<HTMLButtonElement | null>;
   onClose: () => void;
 }
@@ -149,6 +150,7 @@ export function StudyPanel({
   verse,
   verseText,
   isAuthenticated,
+  autoFocusNotes = false,
   triggerRef,
   onClose,
 }: StudyPanelProps) {
@@ -192,6 +194,12 @@ export function StudyPanel({
   // ── Notes ──
   const [notes, setNotes] = useState<CompanionNote[] | null>(null);
   const [notesPending, startNotesFetch] = useTransition();
+  const [showAddForm, setShowAddForm] = useState(autoFocusNotes);
+  const [noteBody, setNoteBody] = useState('');
+  const [savePending, startSave] = useTransition();
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
   useEffect(() => {
     if (!isAuthenticated) return;
     startNotesFetch(async () => {
@@ -200,6 +208,30 @@ export function StudyPanel({
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [passageRef, isAuthenticated]);
+
+  // Auto-focus textarea after panel animates in
+  useEffect(() => {
+    if (!autoFocusNotes || !visible) return;
+    const id = setTimeout(() => textareaRef.current?.focus(), 280);
+    return () => clearTimeout(id);
+  }, [autoFocusNotes, visible]);
+
+  const handleSaveNote = useCallback(() => {
+    if (!noteBody.trim()) return;
+    setSaveError(null);
+    startSave(async () => {
+      const result = await addCompanionNote(passageRef, noteBody.trim());
+      if (result.success) {
+        setNoteBody('');
+        setShowAddForm(false);
+        // Refresh list
+        const refreshed = await getNotesForVerse(passageRef);
+        if (refreshed.success) setNotes(refreshed.data ?? []);
+      } else {
+        setSaveError(result.error ?? 'Could not save note.');
+      }
+    });
+  }, [noteBody, passageRef]);
 
   // ── Study insight ──
   const [insight, setInsight] = useState<string | null>(null);
@@ -348,34 +380,14 @@ export function StudyPanel({
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--stone)', fontSize: 12 }}>
                 <IconSpinner /> Loading notes…
               </div>
-            ) : notes.length === 0 ? (
-              <div>
-                <p style={{ fontSize: 13, color: 'var(--stone)', lineHeight: 1.7, marginBottom: 12 }}>
-                  You haven't written any notes for this verse yet. Add a note to capture your reflections.
-                </p>
-                <button
-                  onClick={() => {
-                    const el = document.getElementById('note-editor');
-                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    window.dispatchEvent(new CustomEvent('verse:note', { detail: { passageRef } }));
-                    handleClose();
-                  }}
-                  style={{
-                    fontSize: 12,
-                    color: 'var(--companion)',
-                    background: 'none',
-                    border: '1px solid var(--companion-lo)',
-                    borderRadius: 7,
-                    padding: '6px 14px',
-                    cursor: 'pointer',
-                    letterSpacing: '0.04em',
-                  }}
-                >
-                  + Add a note
-                </button>
-              </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {/* Existing notes */}
+                {notes.length === 0 && !showAddForm && (
+                  <p style={{ fontSize: 13, color: 'var(--stone)', lineHeight: 1.7 }}>
+                    No notes yet for this verse.
+                  </p>
+                )}
                 {notes.map((note) => (
                   <div key={note.id} style={{
                     background: 'var(--bg2)',
@@ -391,26 +403,92 @@ export function StudyPanel({
                     </p>
                   </div>
                 ))}
-                <button
-                  onClick={() => {
-                    const el = document.getElementById('note-editor');
-                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    window.dispatchEvent(new CustomEvent('verse:note', { detail: { passageRef } }));
-                    handleClose();
-                  }}
-                  style={{
-                    alignSelf: 'flex-start',
-                    fontSize: 12,
-                    color: 'var(--stone)',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: 0,
-                    letterSpacing: '0.04em',
-                  }}
-                >
-                  + Add another note
-                </button>
+
+                {/* Inline add-note form */}
+                {showAddForm ? (
+                  <div style={{
+                    background: 'var(--bg2)',
+                    border: '1px solid var(--companion-lo)',
+                    borderRadius: 8,
+                    padding: '10px 12px',
+                  }}>
+                    <p style={{ fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--companion)', marginBottom: 8 }}>
+                      {passageRef}
+                    </p>
+                    <textarea
+                      ref={textareaRef}
+                      value={noteBody}
+                      onChange={(e) => setNoteBody(e.target.value)}
+                      placeholder="Write your reflection…"
+                      rows={4}
+                      style={{
+                        width: '100%',
+                        background: 'transparent',
+                        border: 'none',
+                        outline: 'none',
+                        color: 'var(--cream)',
+                        fontSize: 13,
+                        lineHeight: 1.65,
+                        resize: 'vertical',
+                        fontFamily: "'DM Sans', sans-serif",
+                      }}
+                    />
+                    {saveError && (
+                      <p style={{ fontSize: 11, color: 'var(--live)', marginTop: 4 }}>{saveError}</p>
+                    )}
+                    <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                      <button
+                        onClick={handleSaveNote}
+                        disabled={savePending || !noteBody.trim()}
+                        style={{
+                          fontSize: 12,
+                          color: savePending || !noteBody.trim() ? 'var(--stone)' : 'var(--bg)',
+                          background: savePending || !noteBody.trim() ? 'var(--faint)' : 'var(--companion)',
+                          border: 'none',
+                          borderRadius: 6,
+                          padding: '6px 14px',
+                          cursor: savePending || !noteBody.trim() ? 'default' : 'pointer',
+                          transition: 'background 0.15s, color 0.15s',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 5,
+                        }}
+                      >
+                        {savePending ? <><IconSpinner /> Saving…</> : 'Save note'}
+                      </button>
+                      <button
+                        onClick={() => { setShowAddForm(false); setNoteBody(''); setSaveError(null); }}
+                        style={{
+                          fontSize: 12,
+                          color: 'var(--stone)',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: '6px 8px',
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowAddForm(true)}
+                    style={{
+                      alignSelf: 'flex-start',
+                      fontSize: 12,
+                      color: 'var(--companion)',
+                      background: 'none',
+                      border: '1px solid var(--companion-lo)',
+                      borderRadius: 7,
+                      padding: '6px 14px',
+                      cursor: 'pointer',
+                      letterSpacing: '0.04em',
+                    }}
+                  >
+                    + {notes.length === 0 ? 'Add a note' : 'Add another note'}
+                  </button>
+                )}
               </div>
             )}
           </Section>
