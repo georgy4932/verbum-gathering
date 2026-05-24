@@ -26,8 +26,8 @@ export default async function LivePage({
 
   const sessions = await listLiveSessions(gathering.id);
   const now = new Date();
-  const upcoming = sessions.filter((s) => new Date(s.starts_at) > now);
-  const past = sessions.filter((s) => new Date(s.starts_at) <= now);
+  const upcoming = sessions.filter((s) => new Date(s.scheduled_at) > now && !s.is_cancelled);
+  const past = sessions.filter((s) => new Date(s.scheduled_at) <= now || s.is_cancelled);
 
   async function handleCreate(formData: FormData) {
     "use server";
@@ -58,7 +58,7 @@ export default async function LivePage({
             </div>
             <div style={{ display: "grid", gap: 8 }}>
               <label style={sectionLabel}>Start time *</label>
-              <input name="starts_at" type="datetime-local" required style={inputStyle} />
+              <input name="scheduled_at" type="datetime-local" required style={inputStyle} />
             </div>
             <button type="submit" style={submitStyle}>Schedule session</button>
           </form>
@@ -109,7 +109,8 @@ function SessionCard({ session }: { session: GatheringLiveSession }) {
         <p style={{ margin: 0, color: "var(--muted)", fontSize: 14, lineHeight: 1.65 }}>{session.description}</p>
       )}
       <p style={{ margin: 0, color: "var(--stone)", fontSize: 12, opacity: 0.6 }}>
-        {new Date(session.starts_at).toLocaleString("en-GB", { dateStyle: "long", timeStyle: "short" })}
+        {new Date(session.scheduled_at).toLocaleString("en-GB", { dateStyle: "long", timeStyle: "short" })}
+        {session.is_cancelled && " · Cancelled"}
       </p>
     </article>
   );

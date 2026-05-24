@@ -29,7 +29,7 @@ export default async function ThreadPage({
 
   async function handleReply(formData: FormData) {
     "use server";
-    await createReply(threadId, gathering!.id, slug, formData);
+    await createReply(threadId, slug, formData);
     redirect(`/gatherings/${slug}/discussion/${threadId}`);
   }
 

@@ -26,10 +26,10 @@ export default async function PrayerPage({
   const membership = user ? await getMyMembership(gathering.id) : null;
   const isMember = !!membership;
 
-  const [prayerRequests, myAcks] = await Promise.all([
-    listPrayerRequests(gathering.id),
-    isMember ? getMyPrayerAcks(gathering.id) : Promise.resolve([]),
-  ]);
+  const prayerRequests = await listPrayerRequests(gathering.id);
+  const myAcks = isMember
+    ? await getMyPrayerAcks(prayerRequests.map((r) => r.id))
+    : [];
 
   async function handleCreate(formData: FormData) {
     "use server";
@@ -83,7 +83,6 @@ export default async function PrayerPage({
                 {isMember && (
                   <PrayingButton
                     requestId={req.id}
-                    gatheringId={gathering.id}
                     gatheringSlug={slug}
                     initialCount={req.praying_count}
                     initialPraying={myAcks.includes(req.id)}

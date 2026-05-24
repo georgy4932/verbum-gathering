@@ -36,7 +36,7 @@ export default async function GatheringHomePage({
   ]);
 
   const upcomingSessions = liveSessions.filter(
-    (s) => new Date(s.starts_at) > new Date(),
+    (s) => new Date(s.scheduled_at) > new Date() && !s.is_cancelled,
   );
 
   return (
@@ -57,7 +57,7 @@ export default async function GatheringHomePage({
             <div key={s.id}>
               <p style={{ color: "var(--cream)", fontWeight: 600, margin: "0 0 4px" }}>{s.title}</p>
               <p style={{ color: "var(--stone)", fontSize: 13, margin: 0 }}>
-                {new Date(s.starts_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}
+                {new Date(s.scheduled_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}
               </p>
             </div>
           ))}

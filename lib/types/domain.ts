@@ -232,10 +232,12 @@ export interface GatheringMember {
 export interface GatheringStudyPost {
   id: string;
   gathering_id: string;
-  user_id: string;
+  author_id: string | null;
   title: string;
   body: string;
   passage_ref: ScriptureRef | null;
+  scripture_refs: string[];
+  is_pinned: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -243,18 +245,20 @@ export interface GatheringStudyPost {
 export interface GatheringDiscussionThread {
   id: string;
   gathering_id: string;
-  user_id: string;
+  author_id: string | null;
   title: string;
   body: string | null;
+  passage_ref: ScriptureRef | null;
+  is_pinned: boolean;
   reply_count: number;
   created_at: string;
+  updated_at: string;
 }
 
 export interface GatheringDiscussionReply {
   id: string;
   thread_id: string;
-  gathering_id: string;
-  user_id: string;
+  author_id: string | null;
   body: string;
   created_at: string;
 }
@@ -262,30 +266,30 @@ export interface GatheringDiscussionReply {
 export interface GatheringPrayerRequest {
   id: string;
   gathering_id: string;
-  user_id: string;
+  author_id: string | null;
   body: string;
   is_answered: boolean;
   praying_count: number;
   created_at: string;
+  updated_at: string;
 }
 
 export interface GatheringPrayerAck {
   request_id: string;
-  gathering_id: string;
   user_id: string;
-  acknowledged_at: string;
+  created_at: string;
 }
 
 export interface GatheringLiveSession {
   id: string;
   gathering_id: string;
-  host_id: string;
   title: string;
   description: string | null;
-  starts_at: string;
-  ends_at: string | null;
+  scheduled_at: string;
+  duration_minutes: number | null;
+  passage_ref: ScriptureRef | null;
   stream_url: string | null;
-  is_active: boolean;
+  is_cancelled: boolean;
   created_at: string;
 }
 

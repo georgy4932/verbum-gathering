@@ -147,7 +147,7 @@ export async function createStudyPost(
 
   const { data, error } = await supabase
     .from("gathering_study_posts")
-    .insert({ gathering_id: gatheringId, user_id: user.id, title, body, passage_ref })
+    .insert({ gathering_id: gatheringId, author_id: user.id, title, body, passage_ref })
     .select()
     .single();
 
@@ -193,7 +193,7 @@ export async function createThread(
 
   const { data, error } = await supabase
     .from("gathering_discussion_threads")
-    .insert({ gathering_id: gatheringId, user_id: user.id, title, body })
+    .insert({ gathering_id: gatheringId, author_id: user.id, title, body })
     .select()
     .single();
 
@@ -214,7 +214,6 @@ export async function listReplies(threadId: string): Promise<GatheringDiscussion
 
 export async function createReply(
   threadId: string,
-  gatheringId: string,
   gatheringSlug: string,
   formData: FormData,
 ): Promise<ActionResult<GatheringDiscussionReply>> {
@@ -226,7 +225,7 @@ export async function createReply(
 
   const { data, error } = await supabase
     .from("gathering_discussion_replies")
-    .insert({ thread_id: threadId, gathering_id: gatheringId, user_id: user.id, body })
+    .insert({ thread_id: threadId, author_id: user.id, body })
     .select()
     .single();
 
@@ -260,7 +259,7 @@ export async function createPrayerRequest(
 
   const { data, error } = await supabase
     .from("gathering_prayer_requests")
-    .insert({ gathering_id: gatheringId, user_id: user.id, body })
+    .insert({ gathering_id: gatheringId, author_id: user.id, body })
     .select()
     .single();
 
@@ -271,7 +270,6 @@ export async function createPrayerRequest(
 
 export async function acknowledgePrayer(
   requestId: string,
-  gatheringId: string,
   gatheringSlug: string,
 ): Promise<ActionResult> {
   const { supabase, user } = await getAuthUser();
@@ -279,7 +277,7 @@ export async function acknowledgePrayer(
 
   const { error } = await supabase
     .from("gathering_prayer_acknowledgments")
-    .upsert({ request_id: requestId, gathering_id: gatheringId, user_id: user.id }, {
+    .upsert({ request_id: requestId, user_id: user.id }, {
       onConflict: "request_id,user_id",
     });
 
@@ -288,14 +286,14 @@ export async function acknowledgePrayer(
   return { success: true };
 }
 
-export async function getMyPrayerAcks(gatheringId: string): Promise<string[]> {
+export async function getMyPrayerAcks(requestIds: string[]): Promise<string[]> {
   const { supabase, user } = await getAuthUser();
-  if (!user) return [];
+  if (!user || requestIds.length === 0) return [];
   const { data } = await supabase
     .from("gathering_prayer_acknowledgments")
     .select("request_id")
-    .eq("gathering_id", gatheringId)
-    .eq("user_id", user.id);
+    .eq("user_id", user.id)
+    .in("request_id", requestIds);
   return (data ?? []).map((r: { request_id: string }) => r.request_id);
 }
 
@@ -321,13 +319,13 @@ export async function createLiveSession(
 
   const title = (formData.get("title") as string).trim();
   const description = (formData.get("description") as string | null)?.trim() || null;
-  const starts_at = formData.get("starts_at") as string;
+  const scheduled_at = formData.get("scheduled_at") as string;
 
-  if (!title || !starts_at) return { success: false, error: "Title and start time are required." };
+  if (!title || !scheduled_at) return { success: false, error: "Title and start time are required." };
 
   const { data, error } = await supabase
     .from("gathering_live_sessions")
-    .insert({ gathering_id: gatheringId, host_id: user.id, title, description, starts_at })
+    .insert({ gathering_id: gatheringId, title, description, scheduled_at })
     .select()
     .single();
 

@@ -6,23 +6,20 @@
 -- Visibility modes:
 --   public      — discoverable and viewable by everyone, joinable by all.
 --   community   — discoverable by signed-in users, joinable by all auth users.
---   private     — visible only to members; host adds members manually.
+--   private     — visible only to members; host/moderator add members explicitly.
 --
 -- Roles:
 --   host        — creator; full control.
 --   moderator   — reserved; schema ready, v1 UI exposes host/member only.
 --   member      — joined participant.
 --
--- RLS strategy: SECURITY DEFINER helper functions avoid circular dependency
--- between gatherings ↔ gathering_members policies.
--- All helper functions use auth.uid() internally — no uid parameter needed.
+-- RLS strategy:
+--   SECURITY DEFINER helper functions encapsulate membership/visibility logic
+--   to avoid circular dependencies between gatherings and gathering_members.
+--   All helpers are based on auth.uid() — no uid parameter needed.
 --
--- Assumes: auth.users, update_updated_at_column() (migration 003).
+-- Assumes: auth.users, update_updated_at_column() (from earlier migration).
 
-
--- ══════════════════════════════════════════════════════════════════════════════
--- 1. ENUMS / CHECK VALUES (using CHECK constraints — no separate types needed)
--- ══════════════════════════════════════════════════════════════════════════════
 
 -- ══════════════════════════════════════════════════════════════════════════════
 -- 2. CORE TABLE: gatherings
@@ -47,7 +44,10 @@ CREATE TABLE IF NOT EXISTS gatherings (
   CONSTRAINT chk_gathering_name_len
     CHECK (char_length(btrim(name)) BETWEEN 1 AND 120),
   CONSTRAINT chk_gathering_slug_format
-    CHECK (slug ~ '^[a-z0-9][a-z0-9-]*[a-z0-9]$' OR slug ~ '^[a-z0-9]$'),
+    CHECK (
+      slug ~ '^[a-z0-9][a-z0-9-]*[a-z0-9]$'
+      OR slug ~ '^[a-z0-9]$'
+    ),
   CONSTRAINT chk_gathering_description_len
     CHECK (description IS NULL OR char_length(description) <= 1000)
 );
@@ -77,8 +77,13 @@ CREATE TABLE IF NOT EXISTS gathering_members (
 
 CREATE INDEX IF NOT EXISTS idx_gathering_members_gathering
   ON gathering_members (gathering_id);
+
 CREATE INDEX IF NOT EXISTS idx_gathering_members_user
   ON gathering_members (user_id);
+
+-- composite index that matches helper lookups: (gathering_id, user_id)
+CREATE INDEX IF NOT EXISTS idx_gathering_members_gid_uid
+  ON gathering_members (gathering_id, user_id);
 
 
 -- ══════════════════════════════════════════════════════════════════════════════
@@ -142,14 +147,13 @@ CREATE TRIGGER trg_gathering_threads_updated_at
 CREATE INDEX IF NOT EXISTS idx_gathering_threads_gathering
   ON gathering_discussion_threads (gathering_id, created_at DESC);
 
--- Replies carry gathering_id for clean RLS without subqueries.
+-- Replies derive gathering_id via the parent thread.
 CREATE TABLE IF NOT EXISTS gathering_discussion_replies (
-  id           uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  gathering_id uuid        NOT NULL REFERENCES gatherings ON DELETE CASCADE,
-  thread_id    uuid        NOT NULL REFERENCES gathering_discussion_threads ON DELETE CASCADE,
-  author_id    uuid        REFERENCES auth.users ON DELETE SET NULL,
-  body         text        NOT NULL,
-  created_at   timestamptz NOT NULL DEFAULT now(),
+  id         uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  thread_id  uuid        NOT NULL REFERENCES gathering_discussion_threads ON DELETE CASCADE,
+  author_id  uuid        REFERENCES auth.users ON DELETE SET NULL,
+  body       text        NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
 
   CONSTRAINT chk_reply_body_len
     CHECK (char_length(btrim(body)) BETWEEN 1 AND 2000)
@@ -160,10 +164,15 @@ CREATE INDEX IF NOT EXISTS idx_gathering_replies_thread
 
 -- Increment reply_count on thread when a reply is inserted.
 CREATE OR REPLACE FUNCTION _increment_thread_reply_count()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
   UPDATE gathering_discussion_threads
-  SET reply_count = reply_count + 1, updated_at = now()
+  SET reply_count = reply_count + 1,
+      updated_at  = now()
   WHERE id = NEW.thread_id;
   RETURN NEW;
 END;
@@ -201,23 +210,29 @@ CREATE TRIGGER trg_prayer_requests_updated_at
 CREATE INDEX IF NOT EXISTS idx_gathering_prayer_gathering
   ON gathering_prayer_requests (gathering_id, created_at DESC);
 
--- "Praying" — a quiet acknowledgment, not a social reaction.
 CREATE TABLE IF NOT EXISTS gathering_prayer_acknowledgments (
-  gathering_id uuid        NOT NULL REFERENCES gatherings ON DELETE CASCADE,
-  request_id   uuid        NOT NULL REFERENCES gathering_prayer_requests ON DELETE CASCADE,
-  user_id      uuid        NOT NULL REFERENCES auth.users ON DELETE CASCADE,
-  created_at   timestamptz NOT NULL DEFAULT now(),
+  request_id uuid        NOT NULL REFERENCES gathering_prayer_requests ON DELETE CASCADE,
+  user_id    uuid        NOT NULL REFERENCES auth.users ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (request_id, user_id)
 );
 
 -- Sync praying_count automatically.
 CREATE OR REPLACE FUNCTION _sync_praying_count()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
-    UPDATE gathering_prayer_requests SET praying_count = praying_count + 1 WHERE id = NEW.request_id;
+    UPDATE gathering_prayer_requests
+    SET praying_count = praying_count + 1
+    WHERE id = NEW.request_id;
   ELSIF TG_OP = 'DELETE' THEN
-    UPDATE gathering_prayer_requests SET praying_count = GREATEST(praying_count - 1, 0) WHERE id = OLD.request_id;
+    UPDATE gathering_prayer_requests
+    SET praying_count = GREATEST(praying_count - 1, 0)
+    WHERE id = OLD.request_id;
   END IF;
   RETURN NULL;
 END;
@@ -246,7 +261,7 @@ CREATE TABLE IF NOT EXISTS gathering_live_sessions (
   scheduled_at     timestamptz NOT NULL,
   duration_minutes integer,
   passage_ref      text,
-  stream_url       text,        -- reserved for future streaming; null in v1
+  stream_url       text,
   is_cancelled     boolean     NOT NULL DEFAULT false,
   created_at       timestamptz NOT NULL DEFAULT now(),
 
@@ -265,12 +280,20 @@ CREATE INDEX IF NOT EXISTS idx_gathering_sessions_gathering
 -- ══════════════════════════════════════════════════════════════════════════════
 
 CREATE OR REPLACE FUNCTION _sync_gathering_member_count()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
-    UPDATE gatherings SET member_count = member_count + 1 WHERE id = NEW.gathering_id;
+    UPDATE gatherings
+    SET member_count = member_count + 1
+    WHERE id = NEW.gathering_id;
   ELSIF TG_OP = 'DELETE' THEN
-    UPDATE gatherings SET member_count = GREATEST(member_count - 1, 0) WHERE id = OLD.gathering_id;
+    UPDATE gatherings
+    SET member_count = GREATEST(member_count - 1, 0)
+    WHERE id = OLD.gathering_id;
   END IF;
   RETURN NULL;
 END;
@@ -292,7 +315,11 @@ CREATE TRIGGER trg_member_count_delete
 -- ══════════════════════════════════════════════════════════════════════════════
 
 CREATE OR REPLACE FUNCTION _auto_join_gathering_host()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
   INSERT INTO gathering_members (gathering_id, user_id, role)
   VALUES (NEW.id, NEW.host_id, 'host')
@@ -309,44 +336,59 @@ CREATE TRIGGER trg_auto_join_host
 
 -- ══════════════════════════════════════════════════════════════════════════════
 -- 10. RLS HELPER FUNCTIONS
--- SECURITY DEFINER — bypass RLS on child tables to avoid circular deps.
 -- ══════════════════════════════════════════════════════════════════════════════
 
--- Can auth.uid() see/access this gathering?
 CREATE OR REPLACE FUNCTION can_see_gathering(gid uuid)
 RETURNS boolean
-LANGUAGE sql SECURITY DEFINER STABLE SET search_path = public AS $$
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
   SELECT EXISTS (
-    SELECT 1 FROM gatherings g
-    WHERE g.id = gid
+    SELECT 1
+    FROM gatherings g
+    WHERE g.id        = gid
       AND g.is_active = true
       AND (
         g.visibility = 'public'
         OR (g.visibility = 'community' AND auth.uid() IS NOT NULL)
         OR EXISTS (
-          SELECT 1 FROM gathering_members m
-          WHERE m.gathering_id = gid AND m.user_id = auth.uid()
+          SELECT 1
+          FROM gathering_members m
+          WHERE m.gathering_id = gid
+            AND m.user_id      = auth.uid()
         )
       )
   );
 $$;
 
--- Is auth.uid() a member of this gathering?
 CREATE OR REPLACE FUNCTION is_gathering_member(gid uuid)
 RETURNS boolean
-LANGUAGE sql SECURITY DEFINER STABLE SET search_path = public AS $$
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
   SELECT EXISTS (
-    SELECT 1 FROM gathering_members m
-    WHERE m.gathering_id = gid AND m.user_id = auth.uid()
+    SELECT 1
+    FROM gathering_members m
+    WHERE m.gathering_id = gid
+      AND m.user_id      = auth.uid()
   );
 $$;
 
--- What role does auth.uid() have in this gathering? NULL if not a member.
 CREATE OR REPLACE FUNCTION gathering_member_role(gid uuid)
 RETURNS text
-LANGUAGE sql SECURITY DEFINER STABLE SET search_path = public AS $$
-  SELECT role FROM gathering_members
-  WHERE gathering_id = gid AND user_id = auth.uid()
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+  SELECT role
+  FROM gathering_members
+  WHERE gathering_id = gid
+    AND user_id      = auth.uid()
   LIMIT 1;
 $$;
 
@@ -355,198 +397,497 @@ $$;
 -- 11. ROW LEVEL SECURITY
 -- ══════════════════════════════════════════════════════════════════════════════
 
-ALTER TABLE gatherings                      ENABLE ROW LEVEL SECURITY;
-ALTER TABLE gathering_members               ENABLE ROW LEVEL SECURITY;
-ALTER TABLE gathering_study_posts           ENABLE ROW LEVEL SECURITY;
-ALTER TABLE gathering_discussion_threads    ENABLE ROW LEVEL SECURITY;
-ALTER TABLE gathering_discussion_replies    ENABLE ROW LEVEL SECURITY;
-ALTER TABLE gathering_prayer_requests       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gatherings                       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gathering_members                ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gathering_study_posts            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gathering_discussion_threads     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gathering_discussion_replies     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gathering_prayer_requests        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gathering_prayer_acknowledgments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE gathering_live_sessions         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gathering_live_sessions          ENABLE ROW LEVEL SECURITY;
 
 DO $$
 BEGIN
+  -- gatherings
 
-  -- ── gatherings ─────────────────────────────────────────────────────────────
-
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='gatherings' AND policyname='Gatherings: select') THEN
-    CREATE POLICY "Gatherings: select" ON gatherings FOR SELECT
-      USING (is_active = true AND (
-        visibility = 'public'
-        OR (visibility = 'community' AND auth.uid() IS NOT NULL)
-        OR is_gathering_member(id)
-      ));
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'gatherings'
+      AND policyname = 'Gatherings: select'
+  ) THEN
+    CREATE POLICY "Gatherings: select"
+      ON gatherings
+      FOR SELECT
+      USING (
+        is_active = true
+        AND (
+          visibility = 'public'
+          OR (visibility = 'community' AND auth.uid() IS NOT NULL)
+          OR is_gathering_member(id)
+        )
+      );
   END IF;
 
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='gatherings' AND policyname='Gatherings: insert') THEN
-    CREATE POLICY "Gatherings: insert" ON gatherings FOR INSERT
-      TO authenticated WITH CHECK (host_id = auth.uid());
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'gatherings'
+      AND policyname = 'Gatherings: insert'
+  ) THEN
+    CREATE POLICY "Gatherings: insert"
+      ON gatherings
+      FOR INSERT
+      TO authenticated
+      WITH CHECK (host_id = auth.uid());
   END IF;
 
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='gatherings' AND policyname='Gatherings: update') THEN
-    CREATE POLICY "Gatherings: update" ON gatherings FOR UPDATE
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'gatherings'
+      AND policyname = 'Gatherings: update'
+  ) THEN
+    CREATE POLICY "Gatherings: update"
+      ON gatherings
+      FOR UPDATE
       TO authenticated
       USING (host_id = auth.uid())
       WITH CHECK (host_id = auth.uid());
   END IF;
 
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='gatherings' AND policyname='Gatherings: delete') THEN
-    CREATE POLICY "Gatherings: delete" ON gatherings FOR DELETE
-      TO authenticated USING (host_id = auth.uid());
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'gatherings'
+      AND policyname = 'Gatherings: delete'
+  ) THEN
+    CREATE POLICY "Gatherings: delete"
+      ON gatherings
+      FOR DELETE
+      TO authenticated
+      USING (host_id = auth.uid());
   END IF;
 
-  -- ── gathering_members ───────────────────────────────────────────────────────
 
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='gathering_members' AND policyname='Members: select') THEN
-    CREATE POLICY "Members: select" ON gathering_members FOR SELECT
+  -- gathering_members
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'gathering_members'
+      AND policyname = 'Members: select'
+  ) THEN
+    CREATE POLICY "Members: select"
+      ON gathering_members
+      FOR SELECT
       USING (can_see_gathering(gathering_id));
   END IF;
 
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='gathering_members' AND policyname='Members: join') THEN
-    CREATE POLICY "Members: join" ON gathering_members FOR INSERT
+  -- self-join for public/community gatherings
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'gathering_members'
+      AND policyname = 'Members: self-join'
+  ) THEN
+    CREATE POLICY "Members: self-join"
+      ON gathering_members
+      FOR INSERT
       TO authenticated
       WITH CHECK (
-        user_id = auth.uid() AND (
-          EXISTS (
-            SELECT 1 FROM gatherings g
-            WHERE g.id = gathering_id AND g.is_active = true
-              AND g.visibility IN ('public', 'community')
-          )
-          OR gathering_member_role(gathering_id) IN ('host', 'moderator')
+        user_id = auth.uid()
+        AND EXISTS (
+          SELECT 1
+          FROM gatherings g
+          WHERE g.id        = gathering_id
+            AND g.is_active = true
+            AND g.visibility IN ('public', 'community')
         )
       );
   END IF;
 
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='gathering_members' AND policyname='Members: leave or remove') THEN
-    CREATE POLICY "Members: leave or remove" ON gathering_members FOR DELETE
+  -- host/moderator adds or removes others (e.g. private groups)
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'gathering_members'
+      AND policyname = 'Members: host-add'
+  ) THEN
+    CREATE POLICY "Members: host-add"
+      ON gathering_members
+      FOR INSERT
       TO authenticated
-      USING (
-        user_id = auth.uid()
-        OR gathering_member_role(gathering_id) IN ('host', 'moderator')
+      WITH CHECK (
+        gathering_member_role(gathering_id) IN ('host', 'moderator')
       );
   END IF;
 
-  -- ── gathering_study_posts ───────────────────────────────────────────────────
-
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='gathering_study_posts' AND policyname='Study posts: select') THEN
-    CREATE POLICY "Study posts: select" ON gathering_study_posts FOR SELECT
-      USING (can_see_gathering(gathering_id));
-  END IF;
-
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='gathering_study_posts' AND policyname='Study posts: insert') THEN
-    CREATE POLICY "Study posts: insert" ON gathering_study_posts FOR INSERT
-      TO authenticated
-      WITH CHECK (author_id = auth.uid() AND gathering_member_role(gathering_id) IN ('host', 'moderator'));
-  END IF;
-
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='gathering_study_posts' AND policyname='Study posts: update') THEN
-    CREATE POLICY "Study posts: update" ON gathering_study_posts FOR UPDATE
-      TO authenticated
-      USING (author_id = auth.uid() OR gathering_member_role(gathering_id) IN ('host', 'moderator'))
-      WITH CHECK (author_id = auth.uid() OR gathering_member_role(gathering_id) IN ('host', 'moderator'));
-  END IF;
-
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='gathering_study_posts' AND policyname='Study posts: delete') THEN
-    CREATE POLICY "Study posts: delete" ON gathering_study_posts FOR DELETE
-      TO authenticated
-      USING (author_id = auth.uid() OR gathering_member_role(gathering_id) IN ('host', 'moderator'));
-  END IF;
-
-  -- ── gathering_discussion_threads ────────────────────────────────────────────
-
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='gathering_discussion_threads' AND policyname='Threads: select') THEN
-    CREATE POLICY "Threads: select" ON gathering_discussion_threads FOR SELECT
-      USING (can_see_gathering(gathering_id));
-  END IF;
-
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='gathering_discussion_threads' AND policyname='Threads: insert') THEN
-    CREATE POLICY "Threads: insert" ON gathering_discussion_threads FOR INSERT
-      TO authenticated
-      WITH CHECK (author_id = auth.uid() AND is_gathering_member(gathering_id));
-  END IF;
-
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='gathering_discussion_threads' AND policyname='Threads: delete') THEN
-    CREATE POLICY "Threads: delete" ON gathering_discussion_threads FOR DELETE
-      TO authenticated
-      USING (author_id = auth.uid() OR gathering_member_role(gathering_id) IN ('host', 'moderator'));
-  END IF;
-
-  -- ── gathering_discussion_replies ────────────────────────────────────────────
-
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='gathering_discussion_replies' AND policyname='Replies: select') THEN
-    CREATE POLICY "Replies: select" ON gathering_discussion_replies FOR SELECT
-      USING (can_see_gathering(gathering_id));
-  END IF;
-
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='gathering_discussion_replies' AND policyname='Replies: insert') THEN
-    CREATE POLICY "Replies: insert" ON gathering_discussion_replies FOR INSERT
-      TO authenticated
-      WITH CHECK (author_id = auth.uid() AND is_gathering_member(gathering_id));
-  END IF;
-
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='gathering_discussion_replies' AND policyname='Replies: delete') THEN
-    CREATE POLICY "Replies: delete" ON gathering_discussion_replies FOR DELETE
-      TO authenticated
-      USING (author_id = auth.uid() OR gathering_member_role(gathering_id) IN ('host', 'moderator'));
-  END IF;
-
-  -- ── gathering_prayer_requests ───────────────────────────────────────────────
-
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='gathering_prayer_requests' AND policyname='Prayer: select') THEN
-    CREATE POLICY "Prayer: select" ON gathering_prayer_requests FOR SELECT
-      USING (can_see_gathering(gathering_id));
-  END IF;
-
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='gathering_prayer_requests' AND policyname='Prayer: insert') THEN
-    CREATE POLICY "Prayer: insert" ON gathering_prayer_requests FOR INSERT
-      TO authenticated
-      WITH CHECK (author_id = auth.uid() AND is_gathering_member(gathering_id));
-  END IF;
-
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='gathering_prayer_requests' AND policyname='Prayer: update') THEN
-    CREATE POLICY "Prayer: update" ON gathering_prayer_requests FOR UPDATE
-      TO authenticated
-      USING (author_id = auth.uid() OR gathering_member_role(gathering_id) IN ('host', 'moderator'))
-      WITH CHECK (author_id = auth.uid() OR gathering_member_role(gathering_id) IN ('host', 'moderator'));
-  END IF;
-
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='gathering_prayer_requests' AND policyname='Prayer: delete') THEN
-    CREATE POLICY "Prayer: delete" ON gathering_prayer_requests FOR DELETE
-      TO authenticated
-      USING (author_id = auth.uid() OR gathering_member_role(gathering_id) IN ('host', 'moderator'));
-  END IF;
-
-  -- ── gathering_prayer_acknowledgments ────────────────────────────────────────
-
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='gathering_prayer_acknowledgments' AND policyname='Praying: select') THEN
-    CREATE POLICY "Praying: select" ON gathering_prayer_acknowledgments FOR SELECT
-      USING (can_see_gathering(gathering_id));
-  END IF;
-
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='gathering_prayer_acknowledgments' AND policyname='Praying: insert') THEN
-    CREATE POLICY "Praying: insert" ON gathering_prayer_acknowledgments FOR INSERT
-      TO authenticated
-      WITH CHECK (user_id = auth.uid() AND is_gathering_member(gathering_id));
-  END IF;
-
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='gathering_prayer_acknowledgments' AND policyname='Praying: delete') THEN
-    CREATE POLICY "Praying: delete" ON gathering_prayer_acknowledgments FOR DELETE
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'gathering_members'
+      AND policyname = 'Members: leave'
+  ) THEN
+    CREATE POLICY "Members: leave"
+      ON gathering_members
+      FOR DELETE
       TO authenticated
       USING (user_id = auth.uid());
   END IF;
 
-  -- ── gathering_live_sessions ─────────────────────────────────────────────────
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'gathering_members'
+      AND policyname = 'Members: host-remove'
+  ) THEN
+    CREATE POLICY "Members: host-remove"
+      ON gathering_members
+      FOR DELETE
+      TO authenticated
+      USING (gathering_member_role(gathering_id) IN ('host', 'moderator'));
+  END IF;
 
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='gathering_live_sessions' AND policyname='Sessions: select') THEN
-    CREATE POLICY "Sessions: select" ON gathering_live_sessions FOR SELECT
+
+  -- gathering_study_posts
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'gathering_study_posts'
+      AND policyname = 'Study posts: select'
+  ) THEN
+    CREATE POLICY "Study posts: select"
+      ON gathering_study_posts
+      FOR SELECT
       USING (can_see_gathering(gathering_id));
   END IF;
 
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='gathering_live_sessions' AND policyname='Sessions: write') THEN
-    CREATE POLICY "Sessions: write" ON gathering_live_sessions FOR ALL
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'gathering_study_posts'
+      AND policyname = 'Study posts: insert'
+  ) THEN
+    CREATE POLICY "Study posts: insert"
+      ON gathering_study_posts
+      FOR INSERT
+      TO authenticated
+      WITH CHECK (
+        author_id = auth.uid()
+        AND gathering_member_role(gathering_id) IN ('host', 'moderator')
+      );
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'gathering_study_posts'
+      AND policyname = 'Study posts: update'
+  ) THEN
+    CREATE POLICY "Study posts: update"
+      ON gathering_study_posts
+      FOR UPDATE
+      TO authenticated
+      USING (
+        author_id = auth.uid()
+        OR gathering_member_role(gathering_id) IN ('host', 'moderator')
+      )
+      WITH CHECK (
+        author_id = auth.uid()
+        OR gathering_member_role(gathering_id) IN ('host', 'moderator')
+      );
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'gathering_study_posts'
+      AND policyname = 'Study posts: delete'
+  ) THEN
+    CREATE POLICY "Study posts: delete"
+      ON gathering_study_posts
+      FOR DELETE
+      TO authenticated
+      USING (
+        author_id = auth.uid()
+        OR gathering_member_role(gathering_id) IN ('host', 'moderator')
+      );
+  END IF;
+
+
+  -- gathering_discussion_threads
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'gathering_discussion_threads'
+      AND policyname = 'Threads: select'
+  ) THEN
+    CREATE POLICY "Threads: select"
+      ON gathering_discussion_threads
+      FOR SELECT
+      USING (can_see_gathering(gathering_id));
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'gathering_discussion_threads'
+      AND policyname = 'Threads: insert'
+  ) THEN
+    CREATE POLICY "Threads: insert"
+      ON gathering_discussion_threads
+      FOR INSERT
+      TO authenticated
+      WITH CHECK (
+        author_id = auth.uid()
+        AND is_gathering_member(gathering_id)
+      );
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'gathering_discussion_threads'
+      AND policyname = 'Threads: delete'
+  ) THEN
+    CREATE POLICY "Threads: delete"
+      ON gathering_discussion_threads
+      FOR DELETE
+      TO authenticated
+      USING (
+        author_id = auth.uid()
+        OR gathering_member_role(gathering_id) IN ('host', 'moderator')
+      );
+  END IF;
+
+
+  -- gathering_discussion_replies
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'gathering_discussion_replies'
+      AND policyname = 'Replies: select'
+  ) THEN
+    CREATE POLICY "Replies: select"
+      ON gathering_discussion_replies
+      FOR SELECT
+      USING (
+        can_see_gathering(
+          (SELECT gathering_id FROM gathering_discussion_threads WHERE id = thread_id)
+        )
+      );
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'gathering_discussion_replies'
+      AND policyname = 'Replies: insert'
+  ) THEN
+    CREATE POLICY "Replies: insert"
+      ON gathering_discussion_replies
+      FOR INSERT
+      TO authenticated
+      WITH CHECK (
+        author_id = auth.uid()
+        AND is_gathering_member(
+          (SELECT gathering_id FROM gathering_discussion_threads WHERE id = thread_id)
+        )
+      );
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'gathering_discussion_replies'
+      AND policyname = 'Replies: delete'
+  ) THEN
+    CREATE POLICY "Replies: delete"
+      ON gathering_discussion_replies
+      FOR DELETE
+      TO authenticated
+      USING (
+        author_id = auth.uid()
+        OR gathering_member_role(
+          (SELECT gathering_id FROM gathering_discussion_threads WHERE id = thread_id)
+        ) IN ('host', 'moderator')
+      );
+  END IF;
+
+
+  -- gathering_prayer_requests
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'gathering_prayer_requests'
+      AND policyname = 'Prayer: select'
+  ) THEN
+    CREATE POLICY "Prayer: select"
+      ON gathering_prayer_requests
+      FOR SELECT
+      USING (can_see_gathering(gathering_id));
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'gathering_prayer_requests'
+      AND policyname = 'Prayer: insert'
+  ) THEN
+    CREATE POLICY "Prayer: insert"
+      ON gathering_prayer_requests
+      FOR INSERT
+      TO authenticated
+      WITH CHECK (
+        author_id = auth.uid()
+        AND is_gathering_member(gathering_id)
+      );
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'gathering_prayer_requests'
+      AND policyname = 'Prayer: update'
+  ) THEN
+    CREATE POLICY "Prayer: update"
+      ON gathering_prayer_requests
+      FOR UPDATE
+      TO authenticated
+      USING (
+        author_id = auth.uid()
+        OR gathering_member_role(gathering_id) IN ('host', 'moderator')
+      )
+      WITH CHECK (
+        author_id = auth.uid()
+        OR gathering_member_role(gathering_id) IN ('host', 'moderator')
+      );
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'gathering_prayer_requests'
+      AND policyname = 'Prayer: delete'
+  ) THEN
+    CREATE POLICY "Prayer: delete"
+      ON gathering_prayer_requests
+      FOR DELETE
+      TO authenticated
+      USING (
+        author_id = auth.uid()
+        OR gathering_member_role(gathering_id) IN ('host', 'moderator')
+      );
+  END IF;
+
+
+  -- gathering_prayer_acknowledgments
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'gathering_prayer_acknowledgments'
+      AND policyname = 'Praying: select'
+  ) THEN
+    CREATE POLICY "Praying: select"
+      ON gathering_prayer_acknowledgments
+      FOR SELECT
+      USING (
+        can_see_gathering(
+          (SELECT gathering_id FROM gathering_prayer_requests WHERE id = request_id)
+        )
+      );
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'gathering_prayer_acknowledgments'
+      AND policyname = 'Praying: insert'
+  ) THEN
+    CREATE POLICY "Praying: insert"
+      ON gathering_prayer_acknowledgments
+      FOR INSERT
+      TO authenticated
+      WITH CHECK (
+        user_id = auth.uid()
+        AND is_gathering_member(
+          (SELECT gathering_id FROM gathering_prayer_requests WHERE id = request_id)
+        )
+      );
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'gathering_prayer_acknowledgments'
+      AND policyname = 'Praying: delete'
+  ) THEN
+    CREATE POLICY "Praying: delete"
+      ON gathering_prayer_acknowledgments
+      FOR DELETE
+      TO authenticated
+      USING (user_id = auth.uid());
+  END IF;
+
+
+  -- gathering_live_sessions
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'gathering_live_sessions'
+      AND policyname = 'Sessions: select'
+  ) THEN
+    CREATE POLICY "Sessions: select"
+      ON gathering_live_sessions
+      FOR SELECT
+      USING (can_see_gathering(gathering_id));
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'gathering_live_sessions'
+      AND policyname = 'Sessions: insert'
+  ) THEN
+    CREATE POLICY "Sessions: insert"
+      ON gathering_live_sessions
+      FOR INSERT
+      TO authenticated
+      WITH CHECK (gathering_member_role(gathering_id) IN ('host', 'moderator'));
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'gathering_live_sessions'
+      AND policyname = 'Sessions: update'
+  ) THEN
+    CREATE POLICY "Sessions: update"
+      ON gathering_live_sessions
+      FOR UPDATE
       TO authenticated
       USING (gathering_member_role(gathering_id) IN ('host', 'moderator'))
       WITH CHECK (gathering_member_role(gathering_id) IN ('host', 'moderator'));
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'gathering_live_sessions'
+      AND policyname = 'Sessions: delete'
+  ) THEN
+    CREATE POLICY "Sessions: delete"
+      ON gathering_live_sessions
+      FOR DELETE
+      TO authenticated
+      USING (gathering_member_role(gathering_id) IN ('host', 'moderator'));
   END IF;
 
 END;

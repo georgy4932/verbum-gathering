@@ -5,7 +5,6 @@ import { acknowledgePrayer } from "@/app/actions/gatherings";
 
 type Props = {
   requestId: string;
-  gatheringId: string;
   gatheringSlug: string;
   initialCount: number;
   initialPraying: boolean;
@@ -13,7 +12,6 @@ type Props = {
 
 export default function PrayingButton({
   requestId,
-  gatheringId,
   gatheringSlug,
   initialCount,
   initialPraying,
@@ -26,7 +24,7 @@ export default function PrayingButton({
     if (praying || loading) return;
     setLoading(true);
     try {
-      const res = await acknowledgePrayer(requestId, gatheringId, gatheringSlug);
+      const res = await acknowledgePrayer(requestId, gatheringSlug);
       if (res.success) {
         setPraying(true);
         setCount((c) => c + 1);
