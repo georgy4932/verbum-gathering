@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { getGathering, getMyMembership } from "@/app/actions/gatherings";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { logGatheringEvent } from "@/lib/monitoring";
 import GatheringNav from "@/components/gathering/gathering-nav";
 import JoinButton from "@/components/gathering/join-button";
 
@@ -33,6 +34,7 @@ export default async function GatheringLayout({
   const isMember = !!membership;
 
   if (gathering.visibility === "private" && !isMember) {
+    if (user) logGatheringEvent("private_access_denied", user.id, gathering.id);
     redirect("/gatherings");
   }
 

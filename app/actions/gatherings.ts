@@ -3,6 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  logGatheringEvent,
+  hasFeatureFlag,
+  isGatheringsCreateGated,
+} from "@/lib/monitoring";
 import type {
   Gathering,
   GatheringMember,
@@ -51,6 +56,11 @@ export async function createGathering(formData: FormData): Promise<never> {
   const { supabase, user } = await getAuthUser();
   if (!user) redirect("/auth/signin");
 
+  if (isGatheringsCreateGated()) {
+    const allowed = await hasFeatureFlag(user.id, "gatherings_create");
+    if (!allowed) redirect("/gatherings?waitlisted=1");
+  }
+
   const name = (formData.get("name") as string).trim();
   const description = (formData.get("description") as string | null)?.trim() || null;
   const visibility = (formData.get("visibility") as string) || "public";
@@ -72,6 +82,8 @@ export async function createGathering(formData: FormData): Promise<never> {
     .single();
 
   if (error || !data) redirect("/gatherings/new?error=Could+not+create+gathering");
+
+  logGatheringEvent("gathering_created", user.id, (data as Gathering).id, { visibility, slug: (data as Gathering).slug });
 
   redirect(`/gatherings/${(data as Gathering).slug}`);
 }
@@ -99,6 +111,7 @@ export async function joinGathering(gatheringId: string): Promise<ActionResult> 
     .insert({ gathering_id: gatheringId, user_id: user.id, role: "member" });
 
   if (error) return { success: false, error: "Could not join gathering." };
+  logGatheringEvent("gathering_joined", user.id, gatheringId);
   revalidatePath("/gatherings");
   return { success: true };
 }
@@ -115,6 +128,7 @@ export async function leaveGathering(gatheringId: string): Promise<ActionResult>
     .neq("role", "host");
 
   if (error) return { success: false, error: "Could not leave gathering." };
+  logGatheringEvent("gathering_left", user.id, gatheringId);
   revalidatePath("/gatherings");
   return { success: true };
 }
@@ -152,6 +166,7 @@ export async function createStudyPost(
     .single();
 
   if (error || !data) return { success: false, error: "Could not create study post." };
+  logGatheringEvent("study_post_created", user.id, gatheringId, { title });
   revalidatePath(`/gatherings/${gatheringSlug}/study`);
   return { success: true, data: data as GatheringStudyPost };
 }
@@ -198,6 +213,7 @@ export async function createThread(
     .single();
 
   if (error || !data) return { success: false, error: "Could not start discussion." };
+  logGatheringEvent("discussion_thread_created", user.id, gatheringId, { title });
   revalidatePath(`/gatherings/${gatheringSlug}/discussion`);
   return { success: true, data: data as GatheringDiscussionThread };
 }
@@ -264,6 +280,7 @@ export async function createPrayerRequest(
     .single();
 
   if (error || !data) return { success: false, error: "Could not share prayer request." };
+  logGatheringEvent("prayer_request_created", user.id, gatheringId);
   revalidatePath(`/gatherings/${gatheringSlug}/prayer`);
   return { success: true, data: data as GatheringPrayerRequest };
 }
@@ -282,6 +299,7 @@ export async function acknowledgePrayer(
     });
 
   if (error) return { success: false, error: "Could not record." };
+  logGatheringEvent("prayer_acknowledged", user.id, null, { requestId });
   revalidatePath(`/gatherings/${gatheringSlug}/prayer`);
   return { success: true };
 }
@@ -330,6 +348,7 @@ export async function createLiveSession(
     .single();
 
   if (error || !data) return { success: false, error: "Could not schedule session." };
+  logGatheringEvent("live_session_scheduled", user.id, gatheringId, { title, scheduled_at });
   revalidatePath(`/gatherings/${gatheringSlug}/live`);
   return { success: true, data: data as GatheringLiveSession };
 }
