@@ -126,6 +126,30 @@ export async function unsavePassage(passageRef: string): Promise<ActionResult> {
   return { success: true };
 }
 
+export async function updateSavedPassageNote(
+  passageRef: string,
+  note: string,
+): Promise<ActionResult<SavedPassage>> {
+  const { supabase, user } = await getAuthUser();
+  if (!user) return { success: false, error: "Not authenticated." };
+
+  const trimmed = note.trim();
+  if (trimmed.length > 2000) return { success: false, error: "Note exceeds 2 000 characters." };
+
+  const { data, error } = await supabase
+    .from("saved_passages")
+    .update({ note: trimmed || null })
+    .eq("user_id", user.id)
+    .eq("passage_ref", passageRef)
+    .select()
+    .single();
+
+  if (error) return { success: false, error: "Could not save note." };
+
+  revalidatePath("/companion/saved");
+  return { success: true, data: data as SavedPassage };
+}
+
 export async function updatePreferredVersion(version: string): Promise<ActionResult> {
   const { supabase, user } = await getAuthUser();
   if (!user) return { success: false, error: "Not authenticated." };
