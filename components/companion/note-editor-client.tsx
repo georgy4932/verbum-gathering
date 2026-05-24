@@ -6,19 +6,21 @@ import { createStudyNote, updateStudyNote, deleteStudyNote } from '@/app/actions
 import type { StudyNote } from '@/app/actions/study-notes';
 
 // note=null means "new draft" — the DB row is created on first substantive save.
+// initialPassageRef pre-fills the passage field when coming from /companion/saved.
 interface NoteEditorClientProps {
   note: StudyNote | null;
+  initialPassageRef?: string;
 }
 
 function formatSavedTime(d: Date): string {
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-export function NoteEditorClient({ note }: NoteEditorClientProps) {
+export function NoteEditorClient({ note, initialPassageRef }: NoteEditorClientProps) {
   const [noteId, setNoteId]     = useState<string | null>(note?.id ?? null);
   const [title, setTitle]       = useState(note?.title ?? '');
   const [content, setContent]   = useState(note?.content ?? '');
-  const [passageRef, setPassageRef] = useState(note?.passage_ref ?? '');
+  const [passageRef, setPassageRef] = useState(note?.passage_ref ?? initialPassageRef ?? '');
   const [noteDate, setNoteDate] = useState(
     note?.note_date ?? new Date().toISOString().split('T')[0]
   );

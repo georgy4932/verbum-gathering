@@ -71,17 +71,31 @@ function PassageRow({
         alignItems: 'flex-start', gap: 12,
         marginBottom: hasNote || editing ? 10 : 0,
       }}>
-        <Link
-          href={`/companion/read/${route}`}
-          style={{
-            fontFamily: "'IM Fell English', serif",
-            fontSize: '1rem',
-            color: 'var(--companion)',
-            textDecoration: 'none',
-          }}
-        >
-          {passage.passage_ref}
-        </Link>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap' }}>
+          <Link
+            href={`/companion/read/${route}`}
+            style={{
+              fontFamily: "'IM Fell English', serif",
+              fontSize: '1rem',
+              color: 'var(--companion)',
+              textDecoration: 'none',
+            }}
+          >
+            {passage.passage_ref}
+          </Link>
+          <Link
+            href={`/companion/notes/new?passage_ref=${encodeURIComponent(passage.passage_ref)}`}
+            style={{
+              fontSize: 11,
+              color: 'var(--stone)',
+              opacity: 0.45,
+              textDecoration: 'none',
+              letterSpacing: '0.02em',
+            }}
+          >
+            Write a note →
+          </Link>
+        </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0 }}>
           <span style={{ fontSize: 11, color: 'var(--stone)', opacity: 0.5 }}>
