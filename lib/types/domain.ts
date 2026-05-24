@@ -202,6 +202,93 @@ export interface DevotionalPractice {
   created_at: string;
 }
 
+// ── Gatherings — The Word Together ───────────────────────────────────────
+
+export type GatheringVisibility = "public" | "community" | "private";
+export type GatheringMemberRole = "host" | "moderator" | "member";
+
+export interface Gathering {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  host_id: string;
+  visibility: GatheringVisibility;
+  cover_image_url: string | null;
+  passage_ref: ScriptureRef | null;
+  is_active: boolean;
+  member_count: number;
+  created_at: string;
+}
+
+export interface GatheringMember {
+  id: string;
+  gathering_id: string;
+  user_id: string;
+  role: GatheringMemberRole;
+  joined_at: string;
+}
+
+export interface GatheringStudyPost {
+  id: string;
+  gathering_id: string;
+  user_id: string;
+  title: string;
+  body: string;
+  passage_ref: ScriptureRef | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GatheringDiscussionThread {
+  id: string;
+  gathering_id: string;
+  user_id: string;
+  title: string;
+  body: string | null;
+  reply_count: number;
+  created_at: string;
+}
+
+export interface GatheringDiscussionReply {
+  id: string;
+  thread_id: string;
+  gathering_id: string;
+  user_id: string;
+  body: string;
+  created_at: string;
+}
+
+export interface GatheringPrayerRequest {
+  id: string;
+  gathering_id: string;
+  user_id: string;
+  body: string;
+  is_answered: boolean;
+  praying_count: number;
+  created_at: string;
+}
+
+export interface GatheringPrayerAck {
+  request_id: string;
+  gathering_id: string;
+  user_id: string;
+  acknowledged_at: string;
+}
+
+export interface GatheringLiveSession {
+  id: string;
+  gathering_id: string;
+  host_id: string;
+  title: string;
+  description: string | null;
+  starts_at: string;
+  ends_at: string | null;
+  stream_url: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
 // ── Saved Items — Cross-Movement ─────────────────────────────────────────
 // A believer's private formation library. Never public.
 
