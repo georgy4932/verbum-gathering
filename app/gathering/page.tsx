@@ -55,6 +55,15 @@ export default function GatheringPage() {
             <span style={ctaStyle}>Enter space →</span>
           </Link>
 
+          <Link href="/gatherings" style={cardStyle}>
+            <small style={labelStyle}>Gatherings</small>
+            <h2 style={titleStyle}>Join a gathering</h2>
+            <p style={descStyle}>
+              Structured discipleship spaces with study, discussion, prayer, and live sessions — hosted by people in this community.
+            </p>
+            <span style={ctaStyle}>Browse gatherings →</span>
+          </Link>
+
         </div>
 
         <p style={{ textAlign: "center", color: "var(--stone)", fontSize: "0.9rem", opacity: 0.5 }}>

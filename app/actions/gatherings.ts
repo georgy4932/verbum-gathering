@@ -305,7 +305,7 @@ export async function listLiveSessions(gatheringId: string): Promise<GatheringLi
     .from("gathering_live_sessions")
     .select("*")
     .eq("gathering_id", gatheringId)
-    .order("starts_at", { ascending: true });
+    .order("scheduled_at", { ascending: true });
   return (data ?? []) as GatheringLiveSession[];
 }
 
