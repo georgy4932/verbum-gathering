@@ -3,9 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/browser";
 
-type Props = {
-  roomSlug: string;
-};
+type Props = { roomSlug: string };
 
 export default function FellowshipRoomPresenceBadge({ roomSlug }: Props) {
   const [count, setCount] = useState(0);
@@ -15,45 +13,26 @@ export default function FellowshipRoomPresenceBadge({ roomSlug }: Props) {
 
     channel
       .on("presence", { event: "sync" }, () => {
-        const state = channel.presenceState();
-        const total = Object.keys(state).length;
-        setCount(total);
+        setCount(Object.keys(channel.presenceState()).length);
       })
       .subscribe();
 
-    return () => {
-      supabaseBrowser.removeChannel(channel);
-    };
+    return () => { supabaseBrowser.removeChannel(channel); };
   }, [roomSlug]);
 
-  let label = "No one is here yet";
-
-  if (count === 1) {
-    label = "1 here now";
-  } else if (count > 1) {
-    label = `${count} here now`;
-  }
+  const label =
+    count === 0 ? "No one here yet" :
+    count === 1 ? "1 here now" :
+    `${count} here now`;
 
   return (
-    <div
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-        fontSize: 12,
-        color: "#86efac",
-        fontWeight: 600,
-      }}
-    >
-      <span
-        style={{
-          width: 6,
-          height: 6,
-          borderRadius: "50%",
-          background: "#86efac",
-          display: "inline-block",
-        }}
-      />
+    <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--stone)" }}>
+      <span style={{
+        width: 6, height: 6, borderRadius: "50%",
+        background: count > 0 ? "#86efac" : "var(--faint2)",
+        display: "inline-block",
+        transition: "background 0.3s",
+      }} />
       {label}
     </div>
   );

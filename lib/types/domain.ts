@@ -202,6 +202,97 @@ export interface DevotionalPractice {
   created_at: string;
 }
 
+// ── Gatherings — The Word Together ───────────────────────────────────────
+
+export type GatheringVisibility = "public" | "community" | "private";
+export type GatheringMemberRole = "host" | "moderator" | "member";
+
+export interface Gathering {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  host_id: string;
+  visibility: GatheringVisibility;
+  cover_image_url: string | null;
+  passage_ref: ScriptureRef | null;
+  is_active: boolean;
+  member_count: number;
+  created_at: string;
+}
+
+export interface GatheringMember {
+  id: string;
+  gathering_id: string;
+  user_id: string;
+  role: GatheringMemberRole;
+  joined_at: string;
+}
+
+export interface GatheringStudyPost {
+  id: string;
+  gathering_id: string;
+  author_id: string | null;
+  title: string;
+  body: string;
+  passage_ref: ScriptureRef | null;
+  scripture_refs: string[];
+  is_pinned: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GatheringDiscussionThread {
+  id: string;
+  gathering_id: string;
+  author_id: string | null;
+  title: string;
+  body: string | null;
+  passage_ref: ScriptureRef | null;
+  is_pinned: boolean;
+  reply_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GatheringDiscussionReply {
+  id: string;
+  thread_id: string;
+  author_id: string | null;
+  body: string;
+  created_at: string;
+}
+
+export interface GatheringPrayerRequest {
+  id: string;
+  gathering_id: string;
+  author_id: string | null;
+  body: string;
+  is_answered: boolean;
+  praying_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GatheringPrayerAck {
+  request_id: string;
+  user_id: string;
+  created_at: string;
+}
+
+export interface GatheringLiveSession {
+  id: string;
+  gathering_id: string;
+  title: string;
+  description: string | null;
+  scheduled_at: string;
+  duration_minutes: number | null;
+  passage_ref: ScriptureRef | null;
+  stream_url: string | null;
+  is_cancelled: boolean;
+  created_at: string;
+}
+
 // ── Saved Items — Cross-Movement ─────────────────────────────────────────
 // A believer's private formation library. Never public.
 
