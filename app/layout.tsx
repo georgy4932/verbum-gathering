@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Link from "next/link";
+import { Analytics } from "@vercel/analytics/next";
 import { getCurrentUserProfile } from "@/lib/profile";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -82,6 +83,7 @@ export default async function RootLayout({
           </div>
         </header>
         <main>{children}</main>
+        <Analytics />
       </body>
     </html>
   );

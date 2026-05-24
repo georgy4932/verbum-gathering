@@ -1,15 +1,45 @@
 import Link from "next/link";
 import { listGatherings } from "@/app/actions/gatherings";
+import { isGatheringsCreateGated, hasFeatureFlag } from "@/lib/monitoring";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Gathering } from "@/lib/types/domain";
 
 export const dynamic = "force-dynamic";
 
-export default async function GatheringsPage() {
-  const gatherings = await listGatherings("public");
+export default async function GatheringsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ waitlisted?: string }>;
+}) {
+  const [gatherings, { waitlisted }, supabase] = await Promise.all([
+    listGatherings("public"),
+    searchParams,
+    createSupabaseServerClient(),
+  ]);
+
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const gated = isGatheringsCreateGated();
+  const canCreate = !gated || (user ? await hasFeatureFlag(user.id, "gatherings_create") : false);
 
   return (
     <main style={{ padding: "4rem 1.25rem" }}>
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
+
+        {waitlisted && (
+          <div style={{
+            marginBottom: 24,
+            padding: "12px 20px",
+            borderRadius: 12,
+            background: "rgba(200,169,106,0.08)",
+            border: "1px solid rgba(200,169,106,0.2)",
+            fontSize: 13,
+            color: "var(--stone)",
+            lineHeight: 1.5,
+          }}>
+            Creating gatherings is in early access — reach out to request access.
+          </div>
+        )}
 
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16, marginBottom: 32, flexWrap: "wrap" }}>
           <div>
@@ -20,19 +50,21 @@ export default async function GatheringsPage() {
               Gather with others
             </h1>
           </div>
-          <Link href="/gatherings/new" style={{
-            minHeight: 40,
-            padding: "0 1.2rem",
-            borderRadius: 999,
-            border: "1px solid var(--companion)",
-            color: "var(--companion)",
-            textDecoration: "none",
-            fontSize: 13,
-            display: "inline-flex",
-            alignItems: "center",
-          }}>
-            + New gathering
-          </Link>
+          {canCreate && (
+            <Link href="/gatherings/new" style={{
+              minHeight: 40,
+              padding: "0 1.2rem",
+              borderRadius: 999,
+              border: "1px solid var(--companion)",
+              color: "var(--companion)",
+              textDecoration: "none",
+              fontSize: 13,
+              display: "inline-flex",
+              alignItems: "center",
+            }}>
+              + New gathering
+            </Link>
+          )}
         </div>
 
         {gatherings.length === 0 ? (
