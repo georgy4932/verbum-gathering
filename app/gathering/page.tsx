@@ -5,21 +5,30 @@ export default function GatheringPage() {
     <main style={{ padding: "4rem 1.25rem" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
 
-        <p style={{ opacity: 0.6, letterSpacing: "0.1em", textTransform: "uppercase", fontSize: 12 }}>
+        <p style={{ color: "var(--stone)", letterSpacing: "0.1em", textTransform: "uppercase", fontSize: 12 }}>
           Gathering
         </p>
 
-        <h1 style={{ fontSize: "clamp(2.2rem, 5vw, 4rem)", margin: "12px 0", lineHeight: 1.05 }}>
+        <h1 style={{ fontSize: "clamp(2.2rem, 5vw, 4rem)", margin: "12px 0", lineHeight: 1.05, color: "var(--cream)" }}>
           Gather in prayer, Scripture, and presence.
         </h1>
 
-        <p style={{ maxWidth: 720, opacity: 0.75, lineHeight: 1.7, marginBottom: 40 }}>
+        <p style={{ maxWidth: 720, color: "var(--muted)", lineHeight: 1.7, marginBottom: 40 }}>
           Prayer, Scripture, and shared presence with others — in real time or quiet spaces.
         </p>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20, marginBottom: 40 }}>
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+          gap: 20,
+          marginBottom: 40,
+        }}>
 
-          <Link href="/live" style={{ ...cardStyle, border: "1px solid rgba(134,239,172,0.25)", background: "rgba(134,239,172,0.04)" }}>
+          <Link href="/live" style={{
+            ...cardStyle,
+            border: "1px solid rgba(134,239,172,0.2)",
+            background: "rgba(134,239,172,0.03)",
+          }}>
             <small style={{ ...labelStyle, color: "#86efac" }}>Live now</small>
             <h2 style={titleStyle}>Join a live gathering</h2>
             <p style={descStyle}>
@@ -37,7 +46,7 @@ export default function GatheringPage() {
             <span style={ctaStyle}>View studies →</span>
           </Link>
 
-          <Link href="/rooms" style={{ ...cardStyle, border: "1px solid rgba(255,255,255,0.05)", background: "rgba(255,255,255,0.015)" }}>
+          <Link href="/rooms" style={cardStyle}>
             <small style={labelStyle}>Open spaces</small>
             <h2 style={titleStyle}>Enter a fellowship space</h2>
             <p style={descStyle}>
@@ -48,7 +57,7 @@ export default function GatheringPage() {
 
         </div>
 
-        <p style={{ textAlign: "center", opacity: 0.45, fontSize: "0.9rem" }}>
+        <p style={{ textAlign: "center", color: "var(--stone)", fontSize: "0.9rem", opacity: 0.5 }}>
           Spaces are open. You may enter quietly.
         </p>
 
@@ -58,10 +67,10 @@ export default function GatheringPage() {
 }
 
 const cardStyle: React.CSSProperties = {
-  border: "1px solid rgba(255,255,255,0.08)",
+  border: "1px solid var(--faint)",
   borderRadius: 24,
   padding: 24,
-  background: "rgba(255,255,255,0.03)",
+  background: "var(--card-surface)",
   display: "flex",
   flexDirection: "column",
   gap: 12,
@@ -71,7 +80,7 @@ const cardStyle: React.CSSProperties = {
 
 const labelStyle: React.CSSProperties = {
   fontSize: 12,
-  opacity: 0.6,
+  color: "var(--stone)",
   letterSpacing: "0.08em",
   textTransform: "uppercase",
 };
@@ -79,10 +88,11 @@ const labelStyle: React.CSSProperties = {
 const titleStyle: React.CSSProperties = {
   fontSize: "1.3rem",
   margin: 0,
+  color: "var(--cream)",
 };
 
 const descStyle: React.CSSProperties = {
-  opacity: 0.75,
+  color: "var(--muted)",
   fontSize: 14,
   lineHeight: 1.7,
   margin: 0,
@@ -91,5 +101,5 @@ const descStyle: React.CSSProperties = {
 const ctaStyle: React.CSSProperties = {
   marginTop: 10,
   fontSize: 13,
-  opacity: 0.8,
+  color: "var(--stone)",
 };
