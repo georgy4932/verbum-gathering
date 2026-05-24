@@ -14,10 +14,13 @@ export const dynamic = "force-dynamic";
 
 export default async function PrayerPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
   const { slug } = await params;
+  const { error: formError } = await searchParams;
   const gathering = await getGathering(slug);
   if (!gathering) notFound();
 
@@ -34,7 +37,10 @@ export default async function PrayerPage({
   async function handleCreate(formData: FormData) {
     "use server";
     if (!user) redirect("/auth/signin");
-    await createPrayerRequest(gathering!.id, slug, formData);
+    const res = await createPrayerRequest(gathering!.id, slug, formData);
+    if (!res.success) {
+      redirect(`/gatherings/${slug}/prayer?error=${encodeURIComponent(res.error)}`);
+    }
     redirect(`/gatherings/${slug}/prayer`);
   }
 
@@ -49,6 +55,11 @@ export default async function PrayerPage({
       {isMember && (
         <section style={sectionStyle}>
           <p style={sectionLabel}>Share a request</p>
+          {formError && (
+            <p style={{ margin: 0, fontSize: 13, color: "#c07060", lineHeight: 1.5 }}>
+              {formError}
+            </p>
+          )}
           <form action={handleCreate} style={{ display: "grid", gap: 14 }}>
             <textarea
               name="body"
