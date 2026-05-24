@@ -1,5 +1,3 @@
-"use server";
-
 import { notFound, redirect } from "next/navigation";
 import { getGathering, getMyMembership, createStudyPost } from "@/app/actions/gatherings";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
