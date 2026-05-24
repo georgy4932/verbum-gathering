@@ -12,7 +12,6 @@
     "@livekit/components-react": "^2.9.6",
     "@livekit/components-styles": "^1.1.0",
     "@supabase/ssr": "^0.6.1",
-    "@supabase/supabase-js": "^2.49.4",
     "livekit-client": "^2.13.2",
     "livekit-server-sdk": "^2.13.1",
     "next": "15.3.8",
@@ -20,9 +19,11 @@
     "react-dom": "^19"
   },
   "devDependencies": {
+    "@supabase/supabase-js": "^2.106.1",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "playwright": "^1.60.0",
     "typescript": "^5"
   }
 }
