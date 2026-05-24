@@ -3,19 +3,21 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-type Props = { slug: string; isHost: boolean };
+type Props = { slug: string; isHost: boolean; isMember: boolean };
 
-const tabs = [
-  { label: "Home",       path: "" },
-  { label: "Study",      path: "/study" },
-  { label: "Discussion", path: "/discussion" },
-  { label: "Prayer",     path: "/prayer" },
-  { label: "Live",       path: "/live" },
-];
-
-export default function GatheringNav({ slug, isHost }: Props) {
+export default function GatheringNav({ slug, isHost, isMember }: Props) {
   const pathname = usePathname();
   const base = `/gatherings/${slug}`;
+
+  const tabs = [
+    { label: "Home",       path: "",           show: true },
+    { label: "Study",      path: "/study",      show: true },
+    { label: "Discussion", path: "/discussion", show: true },
+    { label: "Prayer",     path: "/prayer",     show: true },
+    { label: "Live",       path: "/live",       show: true },
+    { label: "Members",    path: "/members",    show: isMember },
+    { label: "Settings",   path: "/settings",   show: isHost },
+  ];
 
   return (
     <nav style={{
@@ -26,7 +28,7 @@ export default function GatheringNav({ slug, isHost }: Props) {
       paddingBottom: 0,
       overflowX: "auto",
     }}>
-      {tabs.map(({ label, path }) => {
+      {tabs.filter((t) => t.show).map(({ label, path }) => {
         const href = `${base}${path}`;
         const active =
           path === ""

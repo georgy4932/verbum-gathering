@@ -333,3 +333,142 @@ export async function createLiveSession(
   revalidatePath(`/gatherings/${gatheringSlug}/live`);
   return { success: true, data: data as GatheringLiveSession };
 }
+
+// ── Member management ─────────────────────────────────────────────────────
+
+export type GatheringMemberWithProfile = GatheringMember & {
+  profile: { display_name: string | null; username: string | null; avatar_url: string | null } | null;
+};
+
+export async function listMembers(gatheringId: string): Promise<GatheringMemberWithProfile[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase
+    .from("gathering_members")
+    .select("*, profile:profiles(display_name, username, avatar_url)")
+    .eq("gathering_id", gatheringId)
+    .order("joined_at", { ascending: true });
+  return (data ?? []) as GatheringMemberWithProfile[];
+}
+
+export async function removeMember(
+  targetUserId: string,
+  gatheringId: string,
+  gatheringSlug: string,
+): Promise<ActionResult> {
+  const { supabase, user } = await getAuthUser();
+  if (!user) return { success: false, error: "Not authenticated." };
+
+  const myMembership = await getMyMembership(gatheringId);
+  if (myMembership?.role !== "host" && myMembership?.role !== "moderator") {
+    return { success: false, error: "Only hosts and moderators can remove members." };
+  }
+  if (targetUserId === user.id) {
+    return { success: false, error: "You cannot remove yourself." };
+  }
+
+  const { error } = await supabase
+    .from("gathering_members")
+    .delete()
+    .eq("gathering_id", gatheringId)
+    .eq("user_id", targetUserId)
+    .neq("role", "host");
+
+  if (error) return { success: false, error: "Could not remove member." };
+  revalidatePath(`/gatherings/${gatheringSlug}/members`);
+  return { success: true };
+}
+
+export async function setMemberRole(
+  targetUserId: string,
+  gatheringId: string,
+  gatheringSlug: string,
+  role: "moderator" | "member",
+): Promise<ActionResult> {
+  const { supabase, user } = await getAuthUser();
+  if (!user) return { success: false, error: "Not authenticated." };
+
+  const myMembership = await getMyMembership(gatheringId);
+  if (myMembership?.role !== "host") {
+    return { success: false, error: "Only the host can change roles." };
+  }
+
+  const { error } = await supabase
+    .from("gathering_members")
+    .update({ role })
+    .eq("gathering_id", gatheringId)
+    .eq("user_id", targetUserId)
+    .neq("role", "host");
+
+  if (error) return { success: false, error: "Could not update role." };
+  revalidatePath(`/gatherings/${gatheringSlug}/members`);
+  return { success: true };
+}
+
+// ── Gathering settings ────────────────────────────────────────────────────
+
+export async function updateGathering(
+  gatheringId: string,
+  gatheringSlug: string,
+  formData: FormData,
+): Promise<ActionResult<Gathering>> {
+  const { supabase, user } = await getAuthUser();
+  if (!user) return { success: false, error: "Not authenticated." };
+
+  const myMembership = await getMyMembership(gatheringId);
+  if (myMembership?.role !== "host") {
+    return { success: false, error: "Only the host can edit this gathering." };
+  }
+
+  const name = (formData.get("name") as string).trim();
+  const description = (formData.get("description") as string | null)?.trim() || null;
+  const visibility = (formData.get("visibility") as string) || "public";
+  const passage_ref = (formData.get("passage_ref") as string | null)?.trim() || null;
+
+  if (!name) return { success: false, error: "Name is required." };
+
+  const { data, error } = await supabase
+    .from("gatherings")
+    .update({ name, description, visibility, passage_ref })
+    .eq("id", gatheringId)
+    .select()
+    .single();
+
+  if (error || !data) return { success: false, error: "Could not update gathering." };
+  revalidatePath(`/gatherings/${gatheringSlug}`);
+  revalidatePath(`/gatherings/${gatheringSlug}/settings`);
+  return { success: true, data: data as Gathering };
+}
+
+export async function deleteGathering(
+  gatheringId: string,
+): Promise<ActionResult> {
+  const { supabase, user } = await getAuthUser();
+  if (!user) return { success: false, error: "Not authenticated." };
+
+  const myMembership = await getMyMembership(gatheringId);
+  if (myMembership?.role !== "host") {
+    return { success: false, error: "Only the host can delete this gathering." };
+  }
+
+  const { error } = await supabase
+    .from("gatherings")
+    .update({ is_active: false })
+    .eq("id", gatheringId);
+
+  if (error) return { success: false, error: "Could not delete gathering." };
+  revalidatePath("/gatherings");
+  return { success: true };
+}
+
+// ── My gatherings (home page) ─────────────────────────────────────────────
+
+export async function listMyGatherings(): Promise<Gathering[]> {
+  const { supabase, user } = await getAuthUser();
+  if (!user) return [];
+  const { data } = await supabase
+    .from("gathering_members")
+    .select("gathering:gatherings(*)")
+    .eq("user_id", user.id)
+    .order("joined_at", { ascending: false });
+  return ((data ?? []).map((r: { gathering: unknown }) => r.gathering).filter(Boolean)) as Gathering[];
+}

@@ -66,7 +66,7 @@ export default async function GatheringLayout({
           </div>
         </div>
 
-        <GatheringNav slug={slug} isHost={isHost} />
+        <GatheringNav slug={slug} isHost={isHost} isMember={isMember} />
 
         {children}
 

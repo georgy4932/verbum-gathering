@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { getCurrentUserProfile } from "@/lib/profile";
 import HomeLiveNow from "@/components/home-live-now";
 import FellowshipRoomPresenceBadge from "@/components/fellowship-room-presence-badge";
+import { listMyGatherings } from "@/app/actions/gatherings";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,7 @@ export default async function HomePage() {
     redirect("/onboarding");
   }
 
-  const [{ data: devotion }, { data: fellowshipRooms }] = await Promise.all([
+  const [{ data: devotion }, { data: fellowshipRooms }, myGatherings] = await Promise.all([
     supabase
       .from("devotions")
       .select("title, scripture")
@@ -26,6 +27,7 @@ export default async function HomePage() {
       .select("slug, name")
       .order("sort_order")
       .limit(3),
+    listMyGatherings(),
   ]);
 
   return (
@@ -121,6 +123,53 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* My Gatherings — signed-in users only */}
+      {user && myGatherings.length > 0 && (
+        <section style={{ padding: "2.5rem 1.25rem 3rem", borderTop: "1px solid var(--faint)" }}>
+          <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 20 }}>
+              <div>
+                <span className="eyebrow">Your gatherings</span>
+                <h2 style={{ fontSize: "clamp(1.4rem, 2.5vw, 1.9rem)", margin: "4px 0 0" }}>
+                  Continue where you left off
+                </h2>
+              </div>
+              <Link href="/gatherings" style={{ fontSize: 13, color: "var(--stone)", textDecoration: "none" }}>
+                Browse all →
+              </Link>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 14 }}>
+              {myGatherings.slice(0, 4).map((g) => (
+                <Link
+                  key={g.id}
+                  href={`/gatherings/${g.slug}`}
+                  style={{
+                    border: "1px solid var(--faint)",
+                    borderRadius: 20,
+                    padding: "18px 22px",
+                    background: "var(--card-surface)",
+                    textDecoration: "none",
+                    color: "inherit",
+                    display: "grid",
+                    gap: 8,
+                  }}
+                >
+                  <p style={{ margin: 0, fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--stone)" }}>
+                    {g.visibility}
+                  </p>
+                  <h3 style={{ margin: 0, fontSize: "1.05rem", color: "var(--cream)", lineHeight: 1.3 }}>
+                    {g.name}
+                  </h3>
+                  <p style={{ margin: 0, fontSize: 12, color: "var(--stone)" }}>
+                    {g.member_count} {g.member_count === 1 ? "member" : "members"}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Live Now */}
       <section style={{ padding: "2.5rem 1.25rem 3rem", borderTop: "1px solid var(--faint)", background: "var(--bg1)" }}>
