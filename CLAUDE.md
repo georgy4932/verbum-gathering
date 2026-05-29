@@ -6,6 +6,45 @@
 - `@supabase/ssr` for server-side session via cookies
 - Playwright for browser QA (devDependency)
 
+## Implementation sequence — locked, non-negotiable
+
+**No new admin screens until admin role enforcement is fixed and tested.**
+
+This is not a preference. It is a hard sequencing rule. Building admin UI before the auth boundary is secure means polishing an unsafe surface.
+
+### Locked order
+
+1. **Fix admin auth boundary** — establish a real source of truth for admin role (see ADR 003)
+2. **Quarantine broken admin routes** — remove or hard-block `/admin/devotions`, `/admin/insights`, `/admin/live-rooms` until they have real enforcement
+3. **Implement governance schema** — `trust_state`, `account_status`, `content_reports`, `user_strikes`, `moderation_log`, SECURITY DEFINER functions
+4. **Build governance UI** — `/admin/trust-queue`, `/admin/reports` — mobile-first, only after steps 1–3 are complete
+
+Do not jump to step 4 because the UX docs are ready. The docs describe what to build; they do not change the dependency order.
+
+### Admin route PR requirements
+
+Any PR that touches a route under `/admin/` must include:
+- Server-side role enforcement using `profiles.is_platform_admin` — checked inside the page/action, not only in middleware
+- No privileged writes from a browser-side Supabase client (no `supabaseBrowser` in admin pages)
+- At least one test or SQL verification proving a non-admin user cannot reach or mutate
+
+### Current admin auth state (as of 2026-05-29)
+
+| Route | Auth | Role check | Status |
+|---|---|---|---|
+| `/admin/devotions` | None | None | **Critical — open to all users** |
+| `/admin/insights` | Yes | `host_profiles.is_host` — table does not exist | Broken; always redirects; phantom check |
+| `/admin/live-rooms` | Yes | `host_profiles.is_host` — table does not exist | Same |
+
+The source of truth for admin was `host_profiles.is_host`. That table was never migrated. It does not exist. Until this is fixed, there is no functioning admin role enforcement in the application.
+
+### Product spine — non-negotiable constraints
+
+- **Governed written Gatherings** — governance precedes scale
+- **Mobile-first** — mobile is the primary surface; desktop is additive
+- **Trust-gated creation** — `trust_state = 'trusted_user'` required to create a Gathering; manual admin approval only
+- **Moderation before scale** — governance schema is built before user-facing discovery or growth features
+
 ## Development rules
 
 ### QA discipline — mandatory, non-negotiable
