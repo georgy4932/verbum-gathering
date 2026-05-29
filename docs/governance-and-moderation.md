@@ -40,19 +40,30 @@ Gatherings are not ephemeral. A Gathering has a persistent identity and is expec
 
 ### Seeded Gatherings
 
-The platform launches with five seeded Gatherings created by a dedicated platform-owned service account — not the personal admin account. This ensures that the platform's core spaces are not coupled to the lifecycle of any individual admin's credentials.
+Five Gatherings are defined. **Three open at launch; two are held back** until they can be populated with real content and a posting rhythm is established.
+
+All seeded Gatherings are created by a dedicated platform-owned service account — not the personal admin account. This ensures that the platform's core spaces are not coupled to the lifecycle of any individual admin's credentials.
+
+**Opens at launch (must have minimum starter content before opening):**
+
+| Gathering | Purpose | Visibility | Minimum starter content |
+|---|---|---|---|
+| **Daily Scripture Reflection** | A daily passage, reflection prompt, and replies | Public | 3 starter threads |
+| **Prayer Wall** | Prayer requests and encouragement | Community | 2 prayer prompts (real and pastoral, not platform-generated) |
+| **Questions About the Bible** | Sincere Bible questions and Scripture-grounded answers | Public | 3 starter questions |
+
+**Held back — do not open until properly populated:**
 
 | Gathering | Purpose | Visibility |
 |---|---|---|
-| **Daily Scripture Reflection** | A daily passage, reflection prompt, and replies | Public |
-| **Prayer Wall** | Prayer requests, answered prayers, and encouragement | Community |
-| **Questions About the Bible** | Sincere Bible questions and Scripture-grounded answers | Public |
 | **New Believers** | Christian foundations, encouragement, and beginner questions | Community |
 | **Christian Living** | Discipleship, habits, obedience, family, work, temptation, forgiveness | Public |
 
-Prayer Wall and New Believers are community-only: both involve vulnerability that should not be exposed to anonymous visitors.
+**Rationale**: three active spaces feel intentional; five empty spaces signal neglect. New Believers and Christian Living open when they have enough content to demonstrate tone, not on a date.
 
-**On launch order**: seeded Gatherings should not launch empty. Preference is to open 2–3 spaces with at least one real starter thread each, rather than five technically correct but silent spaces. Decide which Gatherings have content ready before opening them.
+**On Prayer Wall content specifically**: seed posts must not be performative or generic. 1–2 real prayer themes framed pastorally, short and specific, written in the platform's intended voice. The moment seed content sounds automated, the space loses its character.
+
+**Creator onboarding is held back at launch.** Users with `trusted_user` status who want to create Gatherings will be able to do so technically, but no public invitation to create Gatherings will be made until the three launch spaces have established visible norms. The governance model must be imitable before it is decentralized.
 
 ---
 
@@ -449,7 +460,45 @@ Priority order for tooling: trust review queue → report queue → moderator ac
 
 ---
 
-## 14. What Belongs on `profiles`
+## 14. MVP Launch Sequence
+
+This sequence is binding. Do not skip steps or reorder them.
+
+### Pre-launch checklist (complete before any user can access the platform)
+
+| Step | Description | Status |
+|---|---|---|
+| Admin auth hardened | `requirePlatformAdmin()` on all /admin routes; no browser-side privileged writes | Done |
+| Governance schema applied | `trust_state`, `account_status`, `is_platform_admin`, `content_reports`, `moderation_log` | Done |
+| Report path operational | `file_content_report()` SECURITY DEFINER with duplicate protection and private-gathering guard | Done |
+| Trust gate on Gatherings | `trust_state = 'trusted_user'` required to create a Gathering; page-level explanation for standard users | Done |
+| Platform service account created | Dedicated account (not personal admin) owns seed Gatherings | **Pending** |
+| Seed Gatherings inserted | Daily Scripture Reflection, Prayer Wall, Questions About the Bible | **Pending** |
+| Minimum starter content posted | 3 threads (DSR), 2 prayer prompts (PW), 3 questions (QAtB) — all real, none generic | **Pending** |
+| Site header mobile nav | Hamburger pattern replaces horizontal nav links | **Pending** |
+
+### Post-launch — in order
+
+1. **Observe before expanding.** Watch how users interact with the three spaces before adding New Believers or Christian Living. Opening new spaces is a signal of health, not a target to hit.
+2. **Establish posting rhythm.** Daily Scripture Reflection requires someone to post a new thread daily (or nearly so) for the first month. Decide now who does this and how.
+3. **Run first trust review cycle.** When users are eligible, run the SQL workflow manually. Don't rush the first promotions — the first trusted creators set the visible standard.
+4. **Open New Believers and Christian Living** only when they have real seed content and a person committed to participating in them actively.
+5. **Invite trusted creators** after at least one creator has been promoted and their Gathering is visibly healthy. The invitation should reference something real, not just a policy document.
+
+### What is not being built yet
+
+| Item | Decision |
+|---|---|
+| `/admin/trust-queue` UI | Deferred — SQL workflow sufficient until review volume grows |
+| `/admin/reports` UI | Deferred — Supabase dashboard query sufficient at MVP volume |
+| Host moderation UI (hide/restore) | Next schema-touching task; requires `is_hidden` column on content tables |
+| Moderator action log | Blocked on host moderation UI being built first |
+| New Believers / Christian Living | Held back until populated |
+| Creator onboarding announcements | Held back until norms are established |
+
+---
+
+## 15. What Belongs on `profiles`
 
 The `profiles` table carries only the current authoritative state of a user. Everything that is a record of events belongs in a dedicated table.
 
@@ -469,7 +518,7 @@ The `profiles` table carries only the current authoritative state of a user. Eve
 
 ---
 
-## 15. Mobile-First UX Constraints
+## 16. Mobile-First UX Constraints
 
 Mobile is the primary product surface for VerbumScribe. Desktop is the expanded version. This is a design priority inversion, not a responsive polishing pass. All governance and moderation flows must be completable by a moderator reviewing a report on their phone.
 
@@ -583,7 +632,7 @@ Verification at mobile must confirm:
 
 ---
 
-## 16. What This Document Does Not Cover
+## 17. What This Document Does Not Cover
 
 - **User data deletion and export** — see separate privacy policy (not yet written)
 - **DMCA and copyright** — not addressed at MVP
