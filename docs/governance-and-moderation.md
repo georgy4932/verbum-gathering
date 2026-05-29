@@ -1,6 +1,6 @@
 # VerbumScribe Governance and Moderation
 
-**Version:** 1.2  
+**Version:** 1.4  
 **Status:** Active  
 **Last updated:** 2026-05-29
 
@@ -18,7 +18,114 @@ This standard is behavioral, not credal. The question is not what you believe in
 
 ---
 
-## 2. Gatherings as the Primary Space
+## 2. Stewardship Invariant
+
+See also: [ADR-004](decisions/004-stewardship-invariant.md)
+
+### Primary failure mode
+
+> **VerbumScribe must never knowingly leave a vulnerable share unacknowledged.**
+
+This is more fundamental than engagement, retention, and growth. It is the lens for evaluating all features, workflows, and future automation decisions.
+
+### Stewardship systems
+
+> **The purpose of stewardship systems is to surface moments that may require human presence, not to automate community judgment.**
+
+Systems exist to improve human awareness and prioritization. They do not replace discernment. It is acceptable to leave some low-engagement content untouched; it is not acceptable to miss vulnerable shares.
+
+### What counts as a vulnerable share (Phase 1)
+
+A vulnerable share is any contribution that contains one or more of:
+- a prayer request
+- a personal struggle
+- a confession of weakness
+- an honest spiritual question
+- a request for guidance or support
+
+**Not treated as vulnerable** (unless they also contain the above):
+- casual reactions
+- routine agreement or "Amen" comments
+- generic pleasantries
+- admin or tech questions
+- content that already has substantive, thoughtful engagement
+
+Phase 1 systems do not classify vulnerability automatically. Deterministic signals surface candidates; human stewards decide what was genuinely vulnerable.
+
+### Acknowledgment vs. resolution
+
+- **Acknowledgment** = meaningful human presence: a short, specific reply, not an automated "noted."
+- **Resolution** = solving the underlying problem (pastoral, theological, or practical).
+
+The platform commits to acknowledgment. It does not commit to comprehensive resolution or counseling.
+
+### Priority order for attention
+
+When attention is limited:
+
+1. **Prayer Wall** — pastoral witness; highest likelihood of relational or spiritual risk.
+2. **Daily Scripture Reflection** — habit loop and visible platform rhythm.
+3. **Questions About the Bible** — depth and discussion space.
+
+If you must choose between an unanswered prayer request and a first-time post that already has replies, the prayer request wins.
+
+### Queue separation
+
+Do not collapse all "things that matter" into one queue:
+
+| Category | Purpose | Examples |
+|---|---|---|
+| **Stewardship** | Care and presence | Prayer requests, lonely threads, first-time participation |
+| **Governance** | Norms, safety, enforcement | Reports, moderation review, trust review |
+| **Observations** | Pattern awareness — no immediate judgment | Tone risks, unusual activity, coordinated behavior |
+
+A separate governance invariant will be added when the report review workflow is formalized:
+> VerbumScribe must never knowingly leave a credible report of harm unreviewed.
+That is a governance invariant, distinct from stewardship.
+
+### Morning Steward Digest (Phase 1)
+
+The canonical stewardship tool is a daily digest — one deliberate review moment per day, no real-time alerts.
+
+**Actionable items (top):**
+
+*Needs Response:*
+- Prayer requests >24h with no meaningful acknowledgment
+- Vulnerable-seeming first-time posts without any meaningful engagement (human steward judgment)
+
+*Needs Presence:*
+- DSR or QAtB threads >24h with zero replies
+
+**Community Snapshot (below):**
+- New members since last digest
+- New threads and prayer requests
+- Total replies since last digest
+- Open reports count (governance context only — not stewardship work)
+
+### Phase 1 faithfulness metrics (first 30 days)
+
+These are faithfulness metrics, not growth metrics:
+
+| Metric | Target |
+|---|---|
+| Prayer requests unacknowledged >24h | 0 |
+| First-time contributions reviewed within 72h | 100% |
+| DSR posts published on schedule | 100% |
+| Open reports older than 7 days | 0 |
+
+Metrics are evidence, not proof. A dashboard can be green while someone still feels unseen. That is still a stewardship failure.
+
+### Evaluation test for all future work
+
+When generating features, workflows, moderation tools, AI assistants, dashboards, or notification systems:
+
+> Does this help a human notice and respond to vulnerable shares, or does it distract attention away from them?
+
+If the answer is "distract" or "neutral while adding complexity," it is not a priority.
+
+---
+
+## 3. Gatherings as the Primary Space
 
 A Gathering is the fundamental unit of community on VerbumScribe. Every Gathering:
 
@@ -67,7 +174,7 @@ All seeded Gatherings are created by a dedicated platform-owned service account 
 
 ---
 
-## 3. Content Types
+## 4. Content Types
 
 ### Threads
 
@@ -94,7 +201,7 @@ A Study Post is host- or moderator-published content: structured teaching, comme
 
 ---
 
-## 4. Trust Levels and Promotion
+## 5. Trust Levels and Promotion
 
 VerbumScribe uses a hybrid trust model. The system tracks eligibility signals and surfaces candidates for review. Promotion itself is always a human decision. These two states are distinct and must not be collapsed:
 
@@ -229,7 +336,7 @@ Granted manually. Few. Trusted.
 
 ---
 
-## 5. Report Categories
+## 6. Report Categories
 
 Any member may report content. Reports are confidential — the reported user is not notified of who filed the report.
 
@@ -249,7 +356,7 @@ Reports are a signal, not a verdict. A report opens a review; it does not remove
 
 ---
 
-## 6. Doctrinal Ambiguity — What Moderation Covers and What It Does Not
+## 7. Doctrinal Ambiguity — What Moderation Covers and What It Does Not
 
 This section is explicit because doctrinal questions are the most common source of moderation confusion in Christian communities.
 
@@ -298,7 +405,7 @@ The governing question in borderline cases: **Is this person engaging in good fa
 
 ---
 
-## 7. Moderator Actions
+## 8. Moderator Actions
 
 ### Hide vs. Remove — a deliberate distinction
 
@@ -346,7 +453,7 @@ Hosts and moderators act within their Gathering only. They cannot act on the pla
 
 ---
 
-## 8. Moderator Scope — Gathering vs. Platform
+## 9. Moderator Scope — Gathering vs. Platform
 
 This distinction matters for accountability.
 
@@ -362,7 +469,7 @@ A Gathering moderator cannot tell a platform admin what to do. A platform admin 
 
 ---
 
-## 9. Escalation Rules
+## 10. Escalation Rules
 
 | Situation | Handled by | Escalation path |
 |---|---|---|
@@ -377,7 +484,7 @@ At MVP, escalation is manual. A user who cannot get resolution from a moderator 
 
 ---
 
-## 10. Appeals
+## 11. Appeals
 
 At MVP, the appeals process is simple and honest: **a user who believes a moderation action was wrong can contact the platform directly.**
 
@@ -397,7 +504,7 @@ When the platform grows, a more structured appeals process — potentially inclu
 
 ---
 
-## 11. Abuse Cases and Expected Patterns
+## 12. Abuse Cases and Expected Patterns
 
 The following abuse patterns are anticipated and the governance model is designed to address them:
 
@@ -414,7 +521,7 @@ The following abuse patterns are anticipated and the governance model is designe
 
 ---
 
-## 12. Audit Logging Expectations
+## 13. Audit Logging Expectations
 
 The following events must be logged at MVP. The `gathering_events` table captures the primary actions. Additional moderator-specific logging is planned for the governance implementation.
 
@@ -437,7 +544,7 @@ Gaps marked "not yet logged" are the highest-priority additions before the host 
 
 ---
 
-## 13. What Remains Manual at MVP
+## 14. What Remains Manual at MVP
 
 The following functions are intentionally manual at MVP. Automating them prematurely trades judgment for speed in ways that are not yet safe.
 
@@ -460,7 +567,7 @@ Priority order for tooling: trust review queue → report queue → moderator ac
 
 ---
 
-## 14. MVP Launch Sequence
+## 15. MVP Launch Sequence
 
 This sequence is binding. Do not skip steps or reorder them.
 
@@ -498,7 +605,7 @@ This sequence is binding. Do not skip steps or reorder them.
 
 ---
 
-## 15. What Belongs on `profiles`
+## 16. What Belongs on `profiles`
 
 The `profiles` table carries only the current authoritative state of a user. Everything that is a record of events belongs in a dedicated table.
 
@@ -518,7 +625,7 @@ The `profiles` table carries only the current authoritative state of a user. Eve
 
 ---
 
-## 16. Mobile-First UX Constraints
+## 17. Mobile-First UX Constraints
 
 Mobile is the primary product surface for VerbumScribe. Desktop is the expanded version. This is a design priority inversion, not a responsive polishing pass. All governance and moderation flows must be completable by a moderator reviewing a report on their phone.
 
@@ -632,7 +739,7 @@ Verification at mobile must confirm:
 
 ---
 
-## 17. What This Document Does Not Cover
+## 18. What This Document Does Not Cover
 
 - **User data deletion and export** — see separate privacy policy (not yet written)
 - **DMCA and copyright** — not addressed at MVP

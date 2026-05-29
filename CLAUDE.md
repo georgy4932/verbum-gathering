@@ -44,6 +44,15 @@ The source of truth for admin was `host_profiles.is_host`. That table was never 
 - **Mobile-first** — mobile is the primary surface; desktop is additive
 - **Trust-gated creation** — `trust_state = 'trusted_user'` required to create a Gathering; manual admin approval only
 - **Moderation before scale** — governance schema is built before user-facing discovery or growth features
+- **Stewardship over optimization** — VerbumScribe must never knowingly leave a vulnerable share unacknowledged; stewardship systems surface moments for human attention, they do not replace human judgment (ADR-004)
+
+### Stewardship evaluation test
+
+Before building any feature, workflow, dashboard, notification system, or AI assistant, ask:
+
+> Does this help a human notice and respond to vulnerable shares, or does it distract attention away from them?
+
+If the answer is "distract" or "neutral while adding complexity," it is not a priority.
 
 ## Development rules
 
