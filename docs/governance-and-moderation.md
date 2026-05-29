@@ -400,7 +400,121 @@ Priority order for tooling: trust review queue → report queue → moderator ac
 
 ---
 
-## 14. What This Document Does Not Cover
+## 14. Mobile-First UX Constraints
+
+Mobile is the primary product surface for VerbumScribe. Desktop is the expanded version. This is a design priority inversion, not a responsive polishing pass. All governance and moderation flows must be completable by a moderator reviewing a report on their phone.
+
+### What is shown first on mobile
+
+The primary action for each screen is always visible without scroll:
+
+| Screen | Primary action shown first | Secondary (below or behind tap) |
+|---|---|---|
+| Gathering overview | Join / Leave button (full-width) | Member count, metadata, tabs |
+| Thread view | Reply input pinned to bottom | Thread metadata, reply count |
+| Prayer request view | "I'm praying" button | Praying count, request date |
+| Report flow | Category selection | Optional note field |
+| Moderator action sheet | Hide / Remove (top two) | Pin / Escalate |
+| Admin trust card | Approve button (above Decline) | Candidate history, join date |
+| Admin report card | Review button | Report category, date, count |
+
+Metadata (member count, join date, interaction count) is always subordinate. It informs the decision; it does not compete for attention with the action.
+
+### What is hidden or collapsed on mobile
+
+The following elements are visible on tablet/desktop but collapsed or absent on mobile:
+
+- Site header nav links — hidden behind hamburger (current debt; must be resolved before launch)
+- Gathering grid layout — collapses to vertical stack
+- Admin queue table view — collapses to stacked cards
+- Moderator action labels in-line — replaced by bottom drawer
+- Multi-column form layouts — always single column on mobile
+- Secondary metadata (visibility badge, last activity) — collapsed below primary content or omitted
+
+### How actions are prioritized on mobile
+
+One primary action per screen. This is enforced by layout, not just convention:
+
+- **Join a Gathering**: full-width button, nothing competing above it
+- **Post a reply**: full-screen compose; keyboard fills lower half; one submit action
+- **Submit a prayer request**: full-screen form; textarea + submit only; no sidebar
+- **Report content**: bottom drawer; category first; optional note below; full-width submit at bottom
+- **Moderator action**: bottom drawer; no more than 4 options; destructive actions require confirm
+
+If a screen requires two important actions (e.g., Approve and Decline), they are both full-width and stacked, with the safer action on top. Destructive or irreversible actions are always second.
+
+### Reporting flow on mobile
+
+The report flow is designed to be completable one-handed in 3 taps:
+
+1. Tap "..." menu on a Thread, Reply, or Prayer Request
+2. Bottom drawer opens — tap **Report**
+3. Category drawer: scrollable list; optional note field below; **Submit report** full-width at bottom
+
+Confirmation state: "Report submitted" — no undo, no further options.
+
+The report form must not require scrolling to reach the submit button on a standard phone viewport (375–390px wide). The note field is optional and placed below the category list; the submit button is always visible at the bottom of the drawer without requiring scroll.
+
+### Moderator actions on mobile
+
+Moderators access actions via long-press or "..." context menu on content. The action sheet shows at most 4 options:
+
+1. Hide / Restore
+2. Remove
+3. Pin / Unpin
+4. Escalate to admin
+
+These are shown as labeled items, never icon-only. Destructive or irreversible actions (Remove) are separated from reversible ones (Hide, Pin) by a visual divider and require a confirmation step ("Hide this reply?" → Cancel / Confirm).
+
+The confirmation step is not optional. Acting on the wrong item is a real failure mode on mobile — the confirmation prevents misfire.
+
+Removing a member is accessed from the member's profile, not from content. This separation is intentional — removing content and removing a member have different weights and are not the same decision.
+
+### Admin trust review on mobile
+
+The trust review queue renders as single-column stacked cards. Each card shows:
+- Display name and join date
+- Interaction count and Gathering count
+- Open reports, if any
+
+Two actions: **Approve** (above) and **Decline** (below). Both are full-width buttons.
+
+- Decline: tap → note field appears → Confirm decline (note required)
+- Approve: tap → optional note → Confirm (note not required but allowed)
+
+The admin must be able to review and act on a candidate without leaving the card view. The candidate's activity history is accessible via a detail tap, but the decision can be made from the card alone.
+
+### How navigation changes across breakpoints
+
+| Element | Mobile | Tablet | Desktop |
+|---|---|---|---|
+| Site header | Brand + hamburger | Brand + collapsed nav | Brand + full nav links |
+| Gathering tabs | Horizontal scroll tab bar | Horizontal tab bar, no scroll | Horizontal tab bar |
+| Gathering header | Stacked (name → metadata → join) | Side-by-side | Side-by-side |
+| Content cards | Full-width stack | Full-width stack | Grid (2-col where appropriate) |
+| Admin queues | Single-column cards | Single-column cards | Two-column or table |
+| Moderation actions | Bottom drawer | Bottom drawer or inline menu | Inline dropdown |
+| Forms | Full-screen, single column | Contained, single column | Contained, may be narrower |
+| Report flow | Bottom drawer | Bottom drawer | Modal or inline panel |
+
+The current site header (horizontal nav links) does not meet the mobile requirement. It must be replaced with a hamburger pattern before any public-facing launch.
+
+### QA requirement for governance flows
+
+Every governance feature (report, hide, remove, trust review, moderator action) must be verified at mobile width before desktop review.
+
+Standard QA viewport for governance: **375×812** (primary), then **1280×800** (desktop).
+
+Verification at mobile must confirm:
+- All tap targets are ≥ 44×44px
+- The flow is completable without horizontal scroll
+- No step depends on hover
+- Destructive actions have a visible confirmation step
+- Back navigation is available without relying on browser chrome
+
+---
+
+## 15. What This Document Does Not Cover
 
 - **User data deletion and export** — see separate privacy policy (not yet written)
 - **DMCA and copyright** — not addressed at MVP
