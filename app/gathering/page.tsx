@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { hasFeatureFlag, isGatheringsCreateGated } from "@/lib/monitoring";
 
 export const dynamic = "force-dynamic";
 
@@ -50,8 +49,6 @@ export default async function GatheringPage() {
   const in24h = new Date(now + 24 * 3_600_000).toISOString();
   const weekAgo = new Date(now - 7 * 24 * 3_600_000).toISOString();
   const dayAgo = new Date(now - 24 * 3_600_000).toISOString();
-
-  const isGated = isGatheringsCreateGated();
 
   const [
     { count: gatheringCount },
@@ -103,8 +100,15 @@ export default async function GatheringPage() {
       : Promise.resolve({ data: [] }),
   ]);
 
-  const canCreate =
-    !isGated || !user || (await hasFeatureFlag(user.id, "gatherings_create"));
+  let canCreate = false;
+  if (user) {
+    const { data: trustProfile } = await supabase
+      .from("profiles")
+      .select("trust_state")
+      .eq("id", user.id)
+      .single();
+    canCreate = trustProfile?.trust_state === "trusted_user";
+  }
 
   const live = (rawLive ?? []) as unknown as Session[];
   const upcoming = (rawUpcoming ?? []) as unknown as Session[];

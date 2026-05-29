@@ -3,11 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import {
-  logGatheringEvent,
-  hasFeatureFlag,
-  isGatheringsCreateGated,
-} from "@/lib/monitoring";
+import { logGatheringEvent } from "@/lib/monitoring";
 import type {
   Gathering,
   GatheringMember,
@@ -56,9 +52,14 @@ export async function createGathering(formData: FormData): Promise<never> {
   const { supabase, user } = await getAuthUser();
   if (!user) redirect("/auth/signin");
 
-  if (isGatheringsCreateGated()) {
-    const allowed = await hasFeatureFlag(user.id, "gatherings_create");
-    if (!allowed) redirect("/gatherings?waitlisted=1");
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("trust_state")
+    .eq("id", user.id)
+    .single();
+
+  if (profile?.trust_state !== "trusted_user") {
+    redirect("/gatherings/new?error=Gathering+creation+requires+trusted+member+status.");
   }
 
   const name = (formData.get("name") as string).trim();

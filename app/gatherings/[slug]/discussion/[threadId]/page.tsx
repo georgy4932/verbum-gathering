@@ -8,6 +8,7 @@ import {
 } from "@/app/actions/gatherings";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { GatheringDiscussionReply } from "@/lib/types/domain";
+import ReportButton from "@/components/gathering/report-button";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +51,9 @@ export default async function ThreadPage({
         <p style={{ margin: 0, color: "var(--stone)", fontSize: 11, opacity: 0.5 }}>
           {new Date(thread.created_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}
         </p>
+        {isMember && user?.id !== thread.author_id && (
+          <ReportButton contentType="thread" contentId={thread.id} />
+        )}
       </div>
 
       {/* Replies */}
@@ -66,6 +70,9 @@ export default async function ThreadPage({
               <p style={{ margin: 0, color: "var(--stone)", fontSize: 11, opacity: 0.5 }}>
                 {new Date(reply.created_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}
               </p>
+              {isMember && user?.id !== reply.author_id && (
+                <ReportButton contentType="reply" contentId={reply.id} />
+              )}
             </article>
           ))}
         </div>

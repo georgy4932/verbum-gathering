@@ -8,6 +8,7 @@ import {
 } from "@/app/actions/gatherings";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import PrayingButton from "@/components/gathering/praying-button";
+import ReportButton from "@/components/gathering/report-button";
 import type { GatheringPrayerRequest } from "@/lib/types/domain";
 
 export const dynamic = "force-dynamic";
@@ -105,6 +106,9 @@ export default async function PrayerPage({
                   </span>
                 )}
               </div>
+              {isMember && user?.id !== req.author_id && (
+                <ReportButton contentType="prayer_request" contentId={req.id} />
+              )}
             </article>
           ))}
         </div>
