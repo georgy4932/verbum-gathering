@@ -46,13 +46,94 @@ The source of truth for admin was `host_profiles.is_host`. That table was never 
 - **Moderation before scale** — governance schema is built before user-facing discovery or growth features
 - **Stewardship over optimization** — VerbumScribe must never knowingly leave a vulnerable share unacknowledged; stewardship systems surface moments for human attention, they do not replace human judgment (ADR-004)
 
-### Stewardship evaluation test
+### Stewardship & platform voice
+
+#### Core stewardship invariant (ADR-004)
+
+VerbumScribe's primary failure mode is:
+
+> A person took a meaningful spiritual or relational risk here and was met with silence.
+
+Two binding principles:
+
+1. **Stewardship invariant** — VerbumScribe must never knowingly leave a vulnerable share unacknowledged.
+2. **Purpose of stewardship systems** — The purpose of stewardship systems is to surface moments that may require human presence, not to automate community judgment.
+
+#### Vulnerable share (Phase 1 definition)
+
+Treat a **vulnerable share** as any member contribution that includes at least one of:
+- a prayer request
+- a personal struggle
+- a confession of weakness
+- an honest spiritual question
+- a request for guidance or support
+
+Explicitly exclude (unless they also contain the above): casual reactions, routine agreement or "Amen" comments, generic small talk, administrative/technical questions, content that already has substantive thoughtful engagement.
+
+In Phase 1, do not classify vulnerability automatically. Use deterministic signals (Prayer Wall, explicit prayer requests) and leave the final judgment to human stewards.
+
+#### Attention hierarchy
+
+When proposing prioritization, queries, or workflow, use this order:
+1. Prayer Wall — highest likelihood of relational/spiritual risk
+2. Daily Scripture Reflection — habit and visible presence
+3. Questions About the Bible — depth and discussion
+
+If a trade-off is required (limited attention), favor an unanswered prayer request over other items, all else equal.
+
+#### Stewardship vs governance vs observations
+
+Keep these categories distinct in reasoning and proposals:
+
+- **Stewardship:** care & presence — vulnerable shares, prayer requests, lonely threads
+- **Governance:** safety & norms — reports, moderation review, trust-state review
+- **Observations:** pattern awareness — tone risks, unusual activity, emerging patterns
+
+Do not collapse these into a single queue or treat governance work as interchangeable with stewardship work.
+
+#### Platform voice constraint (VerbumScribe Reply Covenant)
+
+The platform account exists to reduce silence, not to dominate conversations.
+
+**Purpose of platform replies:** acknowledge, welcome, encourage participation, model tone.
+
+**Not intended to:** teach, resolve, counsel, correct theology publicly, win debates, or have the last word.
+
+**Default limits:**
+- 1–3 sentences, under ~75 words
+- One platform reply per thread/request by default; additional replies require a clear stewardship reason
+- Ask at most one question
+- No Scripture exposition longer than a single verse reference
+- No advice unless there is a clear safety concern
+
+**Operational test before generating a platform reply:**
+
+> Does this make it more likely that another member will participate, or less likely?
+
+If the reply substantially reduces the need for member participation (too complete, too polished, too "final"), it is too much and should be shortened.
+
+**Brevity is not the goal. Presence is the goal.** Replies should be as short as possible while still demonstrating genuine attention to what was shared.
+
+#### Platform vs community care — keep standards separate
+
+- **Stewardship minimum:** a vulnerable share received meaningful acknowledgment (platform or member)
+- **Community health goal:** another human member participated in care
+
+Do not treat a platform reply as equivalent to community response. Keep these standards separate in any analysis or metrics.
+
+#### Stewardship evaluation test
 
 Before building any feature, workflow, dashboard, notification system, or AI assistant, ask:
 
 > Does this help a human notice and respond to vulnerable shares, or does it distract attention away from them?
 
 If the answer is "distract" or "neutral while adding complexity," it is not a priority.
+
+Additional guardrails:
+- Keep systems simple and manually operable first (e.g., manual daily SQL) before suggesting automation
+- Do not introduce new dashboards, real-time alerts, or AI classification unless there is demonstrated human activity and real stewardship load
+- Do not design systems that optimize for aggregate engagement metrics at the expense of attention to vulnerable shares
+- Do not turn the platform voice into the main teacher, counselor, or debater
 
 ## Development rules
 
@@ -113,6 +194,7 @@ Use `execute_sql` via MCP to verify row-level counts match UI state after each p
 | `gathering_discussion_replies` | `thread_id`, `author_id`, `body` — **no `gathering_id`** |
 | `gathering_prayer_requests` | `gathering_id`, `author_id`, `body`, `praying_count` (trigger) |
 | `gathering_prayer_acknowledgments` | `(request_id, user_id)` PK — **no `gathering_id`** |
+| `gathering_prayer_replies` | `request_id`, `author_id`, `body` — written replies; **self-replies (author_id = request author) excluded from stewardship acknowledgment count** |
 | `gathering_live_sessions` | `gathering_id`, `scheduled_at`, `is_cancelled`, `stream_url` — **no `host_id`** |
 
 ### Trigger-maintained counts
