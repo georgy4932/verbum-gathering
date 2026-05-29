@@ -1,6 +1,6 @@
 # VerbumScribe Governance and Moderation
 
-**Version:** 1.1  
+**Version:** 1.4  
 **Status:** Active  
 **Last updated:** 2026-05-29
 
@@ -18,7 +18,114 @@ This standard is behavioral, not credal. The question is not what you believe in
 
 ---
 
-## 2. Gatherings as the Primary Space
+## 2. Stewardship Invariant
+
+See also: [ADR-004](decisions/004-stewardship-invariant.md)
+
+### Primary failure mode
+
+> **VerbumScribe must never knowingly leave a vulnerable share unacknowledged.**
+
+This is more fundamental than engagement, retention, and growth. It is the lens for evaluating all features, workflows, and future automation decisions.
+
+### Stewardship systems
+
+> **The purpose of stewardship systems is to surface moments that may require human presence, not to automate community judgment.**
+
+Systems exist to improve human awareness and prioritization. They do not replace discernment. It is acceptable to leave some low-engagement content untouched; it is not acceptable to miss vulnerable shares.
+
+### What counts as a vulnerable share (Phase 1)
+
+A vulnerable share is any contribution that contains one or more of:
+- a prayer request
+- a personal struggle
+- a confession of weakness
+- an honest spiritual question
+- a request for guidance or support
+
+**Not treated as vulnerable** (unless they also contain the above):
+- casual reactions
+- routine agreement or "Amen" comments
+- generic pleasantries
+- admin or tech questions
+- content that already has substantive, thoughtful engagement
+
+Phase 1 systems do not classify vulnerability automatically. Deterministic signals surface candidates; human stewards decide what was genuinely vulnerable.
+
+### Acknowledgment vs. resolution
+
+- **Acknowledgment** = meaningful human presence: a short, specific reply, not an automated "noted."
+- **Resolution** = solving the underlying problem (pastoral, theological, or practical).
+
+The platform commits to acknowledgment. It does not commit to comprehensive resolution or counseling.
+
+### Priority order for attention
+
+When attention is limited:
+
+1. **Prayer Wall** — pastoral witness; highest likelihood of relational or spiritual risk.
+2. **Daily Scripture Reflection** — habit loop and visible platform rhythm.
+3. **Questions About the Bible** — depth and discussion space.
+
+If you must choose between an unanswered prayer request and a first-time post that already has replies, the prayer request wins.
+
+### Queue separation
+
+Do not collapse all "things that matter" into one queue:
+
+| Category | Purpose | Examples |
+|---|---|---|
+| **Stewardship** | Care and presence | Prayer requests, lonely threads, first-time participation |
+| **Governance** | Norms, safety, enforcement | Reports, moderation review, trust review |
+| **Observations** | Pattern awareness — no immediate judgment | Tone risks, unusual activity, coordinated behavior |
+
+A separate governance invariant will be added when the report review workflow is formalized:
+> VerbumScribe must never knowingly leave a credible report of harm unreviewed.
+That is a governance invariant, distinct from stewardship.
+
+### Morning Steward Digest (Phase 1)
+
+The canonical stewardship tool is a daily digest — one deliberate review moment per day, no real-time alerts.
+
+**Actionable items (top):**
+
+*Needs Response:*
+- Prayer requests >24h with no meaningful acknowledgment
+- Vulnerable-seeming first-time posts without any meaningful engagement (human steward judgment)
+
+*Needs Presence:*
+- DSR or QAtB threads >24h with zero replies
+
+**Community Snapshot (below):**
+- New members since last digest
+- New threads and prayer requests
+- Total replies since last digest
+- Open reports count (governance context only — not stewardship work)
+
+### Phase 1 faithfulness metrics (first 30 days)
+
+These are faithfulness metrics, not growth metrics:
+
+| Metric | Target |
+|---|---|
+| Prayer requests unacknowledged >24h | 0 |
+| First-time contributions reviewed within 72h | 100% |
+| DSR posts published on schedule | 100% |
+| Open reports older than 7 days | 0 |
+
+Metrics are evidence, not proof. A dashboard can be green while someone still feels unseen. That is still a stewardship failure.
+
+### Evaluation test for all future work
+
+When generating features, workflows, moderation tools, AI assistants, dashboards, or notification systems:
+
+> Does this help a human notice and respond to vulnerable shares, or does it distract attention away from them?
+
+If the answer is "distract" or "neutral while adding complexity," it is not a priority.
+
+---
+
+## 3. Gatherings as the Primary Space
 
 A Gathering is the fundamental unit of community on VerbumScribe. Every Gathering:
 
@@ -38,9 +145,36 @@ Gatherings are not ephemeral. A Gathering has a persistent identity and is expec
 | Community | Authenticated users only | Any authenticated user |
 | Private | Members only | Invitation or host approval |
 
+### Seeded Gatherings
+
+Five Gatherings are defined. **Three open at launch; two are held back** until they can be populated with real content and a posting rhythm is established.
+
+All seeded Gatherings are created by a dedicated platform-owned service account — not the personal admin account. This ensures that the platform's core spaces are not coupled to the lifecycle of any individual admin's credentials.
+
+**Opens at launch (must have minimum starter content before opening):**
+
+| Gathering | Purpose | Visibility | Minimum starter content |
+|---|---|---|---|
+| **Daily Scripture Reflection** | A daily passage, reflection prompt, and replies | Public | 3 starter threads |
+| **Prayer Wall** | Prayer requests and encouragement | Community | 2 prayer prompts (real and pastoral, not platform-generated) |
+| **Questions About the Bible** | Sincere Bible questions and Scripture-grounded answers | Public | 3 starter questions |
+
+**Held back — do not open until properly populated:**
+
+| Gathering | Purpose | Visibility |
+|---|---|---|
+| **New Believers** | Christian foundations, encouragement, and beginner questions | Community |
+| **Christian Living** | Discipleship, habits, obedience, family, work, temptation, forgiveness | Public |
+
+**Rationale**: three active spaces feel intentional; five empty spaces signal neglect. New Believers and Christian Living open when they have enough content to demonstrate tone, not on a date.
+
+**On Prayer Wall content specifically**: seed posts must not be performative or generic. 1–2 real prayer themes framed pastorally, short and specific, written in the platform's intended voice. The moment seed content sounds automated, the space loses its character.
+
+**Creator onboarding is held back at launch.** Users with `trusted_user` status who want to create Gatherings will be able to do so technically, but no public invitation to create Gatherings will be made until the three launch spaces have established visible norms. The governance model must be imitable before it is decentralized.
+
 ---
 
-## 3. Content Types
+## 4. Content Types
 
 ### Threads
 
@@ -67,7 +201,7 @@ A Study Post is host- or moderator-published content: structured teaching, comme
 
 ---
 
-## 4. Trust Levels and Promotion
+## 5. Trust Levels and Promotion
 
 VerbumScribe uses a hybrid trust model. The system tracks eligibility signals and surfaces candidates for review. Promotion itself is always a human decision. These two states are distinct and must not be collapsed:
 
@@ -155,9 +289,15 @@ Decline (not just defer) if there is a specific conduct concern. A deferred user
 Granted by platform admin after explicit review and approval of an eligible user.
 
 **Additional capabilities:**
-- Create a Gathering (becomes its host)
-- Request a moderator role within a Gathering they belong to
+- Create a Gathering — at creation time they are automatically inserted into `gathering_members` with `role = 'host'`. This is not a separate step; it happens in the same transaction as the Gathering insert.
+- Request a moderator role within a Gathering they belong to (but do not host)
 - Create longer Study Threads (if the platform introduces thread length differentiation)
+
+**As host of their own Gathering (auto-granted at creation):**
+- Hide threads, replies, and prayer requests within their Gathering (reversible; logged)
+- Restore previously hidden content
+- Remove members from their Gathering
+- Archive their Gathering
 
 **Additional accountability:**
 - Hosts are responsible for the conduct of their Gathering
@@ -169,16 +309,17 @@ Granted by platform admin after explicit review and approval of an eligible user
 Granted by the host of a specific Gathering, and only to Trusted Members. Scoped to that Gathering only.
 
 **Additional capabilities (within their Gathering):**
-- Hide or remove Threads, Replies, Prayer Requests
+- Hide threads, replies, and prayer requests (reversible; logged)
+- Restore previously hidden content
 - Pin or unpin content
 - Remove members from the Gathering
-- Review and action reports filed within the Gathering
 
-**Cannot:**
+**Cannot (at MVP):**
 - Act in Gatherings where they are not a designated moderator
 - Override platform admin decisions
 - Change any user's trust level
 - Grant or revoke moderator status (host does this, not the moderator)
+- See reports filed within the Gathering — reports are platform-admin-only at MVP (see Section 5)
 
 ### Level 3 — Platform Admin
 
@@ -195,7 +336,7 @@ Granted manually. Few. Trusted.
 
 ---
 
-## 5. Report Categories
+## 6. Report Categories
 
 Any member may report content. Reports are confidential — the reported user is not notified of who filed the report.
 
@@ -215,7 +356,7 @@ Reports are a signal, not a verdict. A report opens a review; it does not remove
 
 ---
 
-## 6. Doctrinal Ambiguity — What Moderation Covers and What It Does Not
+## 7. Doctrinal Ambiguity — What Moderation Covers and What It Does Not
 
 This section is explicit because doctrinal questions are the most common source of moderation confusion in Christian communities.
 
@@ -264,60 +405,86 @@ The governing question in borderline cases: **Is this person engaging in good fa
 
 ---
 
-## 7. Moderator Actions
+## 8. Moderator Actions
 
-### Gathering Moderator Actions
+### Hide vs. Remove — a deliberate distinction
 
-| Action | Effect | Reversible? |
-|---|---|---|
-| Hide content | Content hidden from view but not deleted; creator can see it | Yes |
-| Remove content | Content deleted; creator notified (at MVP: no notification) | No (at MVP) |
-| Pin content | Content surfaced to top of listing | Yes |
-| Remove member | Member removed from Gathering; can rejoin if public/community | Yes |
+**Hide** is the primary host and moderator action at MVP.
 
-Gathering moderators act within their Gathering only. They cannot act on the platform user account.
+- Reversible: the original author can still see their own content; all other users cannot
+- Not deleted: the row remains in the database; the content can be restored by a host, moderator, or platform admin
+- Logged: every hide and restore is written to `moderation_log` with actor, target, timestamp, and optional note
+- The author is not notified at MVP (notification mechanism TBD)
+
+**Remove (hard delete)** is deliberately **deferred** at MVP. The operational risk of an irreversible action — applied to the wrong content on mobile — is higher than the value it adds at current scale. Hide covers the safety need. Hard-remove can be added once moderation volume and norms justify it.
+
+If a situation genuinely requires content to disappear permanently (CSAM, fraud evidence, targeted harassment), platform admins handle it via the Supabase console, not through the app UI. That is an acceptable edge case at this scale.
+
+### Gathering-Level Actions (Host and Moderator)
+
+Both hosts and moderators can perform these actions within their Gathering. Hosts have these powers automatically (assigned at Gathering creation); moderators receive them from the host.
+
+| Action | Effect | Reversible? | Logged? |
+|---|---|---|---|
+| Hide content | Hidden from all users except the author; author can still see their own content | **Yes** | **Always** |
+| Restore content | Reverses a hide; content visible to all again | Yes | Yes |
+| Pin content | Content surfaced to top of listing | Yes | No (informational only) |
+| Remove member | Member removed from Gathering; can rejoin if public/community | Yes | Yes |
+
+**Host-only actions:**
+
+| Action | Effect | Reversible? | Logged? |
+|---|---|---|---|
+| Archive Gathering | Gathering closed to new content; existing content readable | Yes (reopen) | Yes |
+
+Hosts and moderators act within their Gathering only. They cannot act on the platform user account.
 
 ### Platform Admin Actions
 
 | Action | Effect | Reversible? |
 |---|---|---|
-| All moderator actions | As above, in any Gathering | Varies |
+| All host/moderator actions | As above, in any Gathering | Varies |
 | Suspend account | User cannot sign in; content remains | Yes |
 | Permanently deactivate account | User cannot sign in; content soft-deleted | No |
-| Promote trust level | Changes user_role / feature_flag | Yes |
-| Revoke trust level | Removes creation capability | Yes |
-| Mark report resolved | Closes report with outcome | Yes (reopen) |
-| Override moderator decision | Restores or removes content over moderator's head | Yes |
+| Promote trust level | `trust_state` → `trusted_user` | Yes |
+| Revoke trust level | `trust_state` → `standard_user` | Yes |
+| Mark report resolved | Closes report with outcome and resolution note | Yes (reopen) |
+| Override moderator decision | Restores or hides content over moderator's head | Yes |
 
 ---
 
-## 8. Moderator Scope — Gathering vs. Platform
+## 9. Moderator Scope — Gathering vs. Platform
 
 This distinction matters for accountability.
 
-**Gathering moderators** are accountable to the host who designated them and to platform policy. They can act only within their Gathering. If a Gathering moderator abuses their role (retaliating against members, selectively enforcing rules), they can be removed by the host or by a platform admin.
+**The line:** Hosts and moderators moderate content visibility within their Gathering. Platform admins handle formal enforcement and report adjudication.
+
+**Gathering hosts and moderators** are accountable to the host who designated them and to platform policy. They can act only within their Gathering. Their actions are scoped, reversible, and logged. If a moderator abuses their role (retaliating against members, selectively enforcing rules), they can be removed by the host or by a platform admin.
 
 **Platform admins** are accountable to the platform itself. Their actions are logged. They operate across all Gatherings. An admin who acts in bad faith (retaliating against users, using access for personal benefit) is in violation of the platform's own governance standards.
 
-A Gathering moderator cannot tell a platform admin what to do. A platform admin can override a Gathering moderator's decision but should do so sparingly and with a documented reason.
+A Gathering moderator cannot tell a platform admin what to do. A platform admin can override a host or moderator's decision but should do so sparingly and with a documented reason.
+
+**On reports specifically:** All reports are visible to platform admins only at MVP. Hosts and moderators do not see who filed a report or its contents. This is intentional — host-visible reporting creates retaliation risk and privacy problems before moderation norms are mature. Host report visibility can be added when norms are established and the need is demonstrated.
 
 ---
 
-## 9. Escalation Rules
+## 10. Escalation Rules
 
 | Situation | Handled by | Escalation path |
 |---|---|---|
-| Content violation in a Gathering | Gathering moderator | → Platform admin if moderator is unavailable or conflicted |
+| Content violation in a Gathering | Host or moderator (hide action) | → Platform admin if host/moderator is unavailable or conflicted |
+| Formal report filed against content | Platform admin only | No further escalation at MVP |
 | Report against a Gathering moderator | Platform admin only | No further escalation at MVP |
 | Report against a platform admin | — | Not defined at MVP; deferred |
 | Cross-Gathering pattern of behavior | Platform admin | — |
-| Potential legal issue (threats, CSAM, fraud) | Platform admin | → Legal / law enforcement immediately |
+| Potential legal issue (threats, CSAM, fraud) | Platform admin | → Legal / law enforcement immediately; content removed via Supabase console |
 
 At MVP, escalation is manual. A user who cannot get resolution from a moderator contacts the platform directly (mechanism TBD — email, in-app form, or both).
 
 ---
 
-## 10. Appeals
+## 11. Appeals
 
 At MVP, the appeals process is simple and honest: **a user who believes a moderation action was wrong can contact the platform directly.**
 
@@ -337,7 +504,7 @@ When the platform grows, a more structured appeals process — potentially inclu
 
 ---
 
-## 11. Abuse Cases and Expected Patterns
+## 12. Abuse Cases and Expected Patterns
 
 The following abuse patterns are anticipated and the governance model is designed to address them:
 
@@ -354,7 +521,7 @@ The following abuse patterns are anticipated and the governance model is designe
 
 ---
 
-## 12. Audit Logging Expectations
+## 13. Audit Logging Expectations
 
 The following events must be logged at MVP. The `gathering_events` table captures the primary actions. Additional moderator-specific logging is planned for the governance implementation.
 
@@ -368,16 +535,16 @@ The following events must be logged at MVP. The `gathering_events` table capture
 | Study post created | Yes (`study_post_created`) | Platform admin |
 | Discussion thread created | Yes (`discussion_thread_created`) | Platform admin |
 | Private access denied | Yes (`private_access_denied`) | Platform admin |
-| Content reported | **Not yet logged** | — |
-| Moderator action (hide/remove/pin) | **Not yet logged** | — |
+| Content reported | **Logged** — via `file_content_report()` SECURITY DEFINER; stored in `content_reports` | Platform admin only |
+| Moderator action (hide/restore) | **Not yet logged** — `moderation_log` table exists; hide/restore server actions not yet written | — |
+| Trust level changed | **Logged** — via `approve_trust_user()` / `decline_trust_user()` SECURITY DEFINER; stored in `moderation_log` | Platform admin |
 | Account suspended | **Not yet logged** | — |
-| Trust level changed | **Not yet logged** | — |
 
-Gaps marked above are the highest-priority additions in the governance implementation phase.
+Gaps marked "not yet logged" are the highest-priority additions before the host moderation action paths are built.
 
 ---
 
-## 13. What Remains Manual at MVP
+## 14. What Remains Manual at MVP
 
 The following functions are intentionally manual at MVP. Automating them prematurely trades judgment for speed in ways that are not yet safe.
 
@@ -400,7 +567,65 @@ Priority order for tooling: trust review queue → report queue → moderator ac
 
 ---
 
-## 14. Mobile-First UX Constraints
+## 15. MVP Launch Sequence
+
+This sequence is binding. Do not skip steps or reorder them.
+
+### Pre-launch checklist (complete before any user can access the platform)
+
+| Step | Description | Status |
+|---|---|---|
+| Admin auth hardened | `requirePlatformAdmin()` on all /admin routes; no browser-side privileged writes | Done |
+| Governance schema applied | `trust_state`, `account_status`, `is_platform_admin`, `content_reports`, `moderation_log` | Done |
+| Report path operational | `file_content_report()` SECURITY DEFINER with duplicate protection and private-gathering guard | Done |
+| Trust gate on Gatherings | `trust_state = 'trusted_user'` required to create a Gathering; page-level explanation for standard users | Done |
+| Platform service account created | Dedicated account (not personal admin) owns seed Gatherings | **Pending** |
+| Seed Gatherings inserted | Daily Scripture Reflection, Prayer Wall, Questions About the Bible | **Pending** |
+| Minimum starter content posted | 3 threads (DSR), 2 prayer prompts (PW), 3 questions (QAtB) — all real, none generic | **Pending** |
+| Site header mobile nav | Hamburger pattern replaces horizontal nav links | **Pending** |
+
+### Post-launch — in order
+
+1. **Observe before expanding.** Watch how users interact with the three spaces before adding New Believers or Christian Living. Opening new spaces is a signal of health, not a target to hit.
+2. **Establish posting rhythm.** Daily Scripture Reflection requires someone to post a new thread daily (or nearly so) for the first month. Decide now who does this and how.
+3. **Run first trust review cycle.** When users are eligible, run the SQL workflow manually. Don't rush the first promotions — the first trusted creators set the visible standard.
+4. **Open New Believers and Christian Living** only when they have real seed content and a person committed to participating in them actively.
+5. **Invite trusted creators** after at least one creator has been promoted and their Gathering is visibly healthy. The invitation should reference something real, not just a policy document.
+
+### What is not being built yet
+
+| Item | Decision |
+|---|---|
+| `/admin/trust-queue` UI | Deferred — SQL workflow sufficient until review volume grows |
+| `/admin/reports` UI | Deferred — Supabase dashboard query sufficient at MVP volume |
+| Host moderation UI (hide/restore) | Next schema-touching task; requires `is_hidden` column on content tables |
+| Moderator action log | Blocked on host moderation UI being built first |
+| New Believers / Christian Living | Held back until populated |
+| Creator onboarding announcements | Held back until norms are established |
+
+---
+
+## 16. What Belongs on `profiles`
+
+The `profiles` table carries only the current authoritative state of a user. Everything that is a record of events belongs in a dedicated table.
+
+| Field | Belongs on `profiles`? | Reason |
+|---|---|---|
+| `full_name`, `avatar_url`, `bio` | **Yes** | Identity |
+| `trust_state` | **Yes** | Drives access decisions on every request; must be fast and always-present |
+| `account_status` | **Yes** | Same — checked on every authenticated action |
+| `is_platform_admin` | **Yes** | Same |
+| `eligible_since`, `trust_reviewed_at`, `trust_review_note` | **Yes** | Metadata about the current trust decision, not a history |
+| Report counts, strike counts | **No** → `content_reports`, `user_strikes` | History; computed from dedicated tables |
+| Moderation action history | **No** → `moderation_log` | Append-only audit trail |
+| Gathering membership and role | **No** → `gathering_members` | Per-gathering join table |
+| Prayer acknowledgment history | **No** → `gathering_prayer_acknowledgments` | Per-request join table |
+
+**`is_platform_admin` is read-only from application code.** It may be read for authorization decisions. It must not be exposed for mutation through any profile update path. RLS enforces this via a `WITH CHECK` clause that prevents a user from changing their own `is_platform_admin` value. Setting this flag is a manual Supabase dashboard operation.
+
+---
+
+## 17. Mobile-First UX Constraints
 
 Mobile is the primary product surface for VerbumScribe. Desktop is the expanded version. This is a design priority inversion, not a responsive polishing pass. All governance and moderation flows must be completable by a moderator reviewing a report on their phone.
 
@@ -514,7 +739,7 @@ Verification at mobile must confirm:
 
 ---
 
-## 15. What This Document Does Not Cover
+## 18. What This Document Does Not Cover
 
 - **User data deletion and export** — see separate privacy policy (not yet written)
 - **DMCA and copyright** — not addressed at MVP
