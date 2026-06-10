@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { publishCompanionNoteToGathering, type ShareableGathering } from "@/app/actions/gatherings";
 import type { CompanionNote } from "@/lib/types/domain";
+import { GATHERING_AUDIENCE_COPY } from "@/lib/gathering/audience-copy";
 
 interface ShareToGatheringProps {
   note: CompanionNote;
@@ -77,7 +78,9 @@ export function ShareToGathering({ note, gatherings, scriptureContext }: ShareTo
           >
             <option value="">Choose a Gathering…</option>
             {gatherings.map((g) => (
-              <option key={g.id} value={g.id}>{g.name}</option>
+              <option key={g.id} value={g.id}>
+                {g.name} · {GATHERING_AUDIENCE_COPY[g.visibility].pickerLabel}
+              </option>
             ))}
           </select>
         </label>
@@ -109,9 +112,10 @@ export function ShareToGathering({ note, gatherings, scriptureContext }: ShareTo
   if (step === "confirming" && selected) {
     return (
       <div style={panelStyle}>
+        <p style={copyStyle}>This will share a separate copy in {selected.name}.</p>
+        <p style={copyStyle}>{GATHERING_AUDIENCE_COPY[selected.visibility].confirmCopy}</p>
         <p style={copyStyle}>
-          This will share a separate copy with members of {selected.name}. Your private {itemLabel} will
-          remain private. Later edits here will not change the shared copy.
+          Your private {itemLabel} will remain private. Later edits here will not change the shared copy.
         </p>
         <p style={copyStyle}>Sharing again will create another separate copy.</p>
         <div style={{ display: "flex", gap: 10 }}>
