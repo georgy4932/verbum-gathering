@@ -27,12 +27,17 @@ export interface UserProfile {
 // ── Companion — The Word Interpreted ──────────────────────────────────────
 // All companion data is private. Never publicly visible.
 
+// 'prayer' is an MVP compromise — see migration 018. Revisit if prayer
+// points acquire a distinct lifecycle (reminders, answered-state, etc.).
+export type CompanionNoteKind = "note" | "prayer";
+
 export interface CompanionNote {
   id: string;
   user_id: string;
   passage_ref: ScriptureRef;
   scripture_refs: ScriptureRef[];
   body: string;
+  kind: CompanionNoteKind;
   created_at: string;
   updated_at: string;
 }

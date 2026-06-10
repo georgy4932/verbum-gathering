@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import Anthropic from "@anthropic-ai/sdk";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { CompanionNote, SavedPassage } from "@/lib/types/domain";
+import type { CompanionNote, CompanionNoteKind, SavedPassage } from "@/lib/types/domain";
 
 function getAnthropicClient(): Anthropic | null {
   if (!process.env.ANTHROPIC_API_KEY) return null;
@@ -20,17 +20,21 @@ async function getAuthUser() {
   return { supabase, user };
 }
 
+const VALID_NOTE_KINDS = new Set<CompanionNoteKind>(["note", "prayer"]);
+
 export async function addCompanionNote(
   passageRef: string,
-  body: string
+  body: string,
+  kind: CompanionNoteKind = "note"
 ): Promise<ActionResult<CompanionNote>> {
   const { supabase, user } = await getAuthUser();
   if (!user) return { success: false, error: "Sign in to save notes." };
   if (!body.trim()) return { success: false, error: "Note cannot be empty." };
+  if (!VALID_NOTE_KINDS.has(kind)) return { success: false, error: "Invalid note kind." };
 
   const { data, error } = await supabase
     .from("companion_notes")
-    .insert({ user_id: user.id, passage_ref: passageRef, body: body.trim() })
+    .insert({ user_id: user.id, passage_ref: passageRef, body: body.trim(), kind })
     .select()
     .single();
 
