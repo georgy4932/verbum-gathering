@@ -2,11 +2,26 @@
 
 import { useState, useTransition } from "react";
 import { addCompanionNote, updateCompanionNote, deleteCompanionNote } from "@/app/actions/companion";
+import type { ShareableGathering } from "@/app/actions/gatherings";
+import { ShareToGathering } from "./share-to-gathering";
 import type { CompanionNote, CompanionNoteKind } from "@/lib/types/domain";
+
+interface ScriptureContext {
+  translationVersion?: string;
+  scriptureTextSnapshot?: string;
+}
 
 // ── Note list entry ────────────────────────────────────────────────────────
 
-function NoteEntry({ note }: { note: CompanionNote }) {
+function NoteEntry({
+  note,
+  gatherings,
+  scriptureContext,
+}: {
+  note: CompanionNote;
+  gatherings: ShareableGathering[];
+  scriptureContext?: ScriptureContext;
+}) {
   const [editing, setEditing] = useState(false);
   const [body, setBody] = useState(note.body);
   const [isPending, startTransition] = useTransition();
@@ -93,6 +108,10 @@ function NoteEntry({ note }: { note: CompanionNote }) {
         <p style={{ fontSize: "0.95rem", lineHeight: 1.75, color: "var(--muted)", margin: 0 }}>
           {note.body}
         </p>
+      )}
+
+      {!editing && (
+        <ShareToGathering note={note} gatherings={gatherings} scriptureContext={scriptureContext} />
       )}
     </div>
   );
@@ -190,9 +209,11 @@ function AddNoteForm({ passageRef, kind }: { passageRef: string; kind: Companion
 interface NoteEditorProps {
   passageRef: string;
   existingNotes: CompanionNote[];
+  memberGatherings?: ShareableGathering[];
+  scriptureContext?: ScriptureContext;
 }
 
-export default function NoteEditor({ passageRef, existingNotes }: NoteEditorProps) {
+export default function NoteEditor({ passageRef, existingNotes, memberGatherings = [], scriptureContext }: NoteEditorProps) {
   return (
     <section style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ borderTop: "1px solid var(--faint)", paddingTop: 32 }}>
@@ -202,7 +223,7 @@ export default function NoteEditor({ passageRef, existingNotes }: NoteEditorProp
 
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 16 }}>
           {existingNotes.map((note) => (
-            <NoteEntry key={note.id} note={note} />
+            <NoteEntry key={note.id} note={note} gatherings={memberGatherings} scriptureContext={scriptureContext} />
           ))}
         </div>
 

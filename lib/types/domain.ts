@@ -212,6 +212,11 @@ export interface DevotionalPractice {
 export type GatheringVisibility = "public" | "community" | "private";
 export type GatheringMemberRole = "host" | "moderator" | "member";
 
+// Provenance of a published Companion → Gathering copy. 'manual' covers
+// content authored directly in a Gathering (no Companion source).
+export type GatheringSourceContext = "companion_highlight" | "companion_note" | "companion_prayer" | "manual";
+export type GatheringPublicationState = "shared" | "archived";
+
 export interface Gathering {
   id: string;
   slug: string;
@@ -254,6 +259,12 @@ export interface GatheringDiscussionThread {
   title: string;
   body: string | null;
   passage_ref: ScriptureRef | null;
+  passage_start: string | null;
+  passage_end: string | null;
+  translation_version: string | null;
+  scripture_text_snapshot: string | null;
+  source_context: GatheringSourceContext | null;
+  publication_state: GatheringPublicationState;
   is_pinned: boolean;
   reply_count: number;
   created_at: string;
@@ -273,6 +284,13 @@ export interface GatheringPrayerRequest {
   gathering_id: string;
   author_id: string | null;
   body: string;
+  passage_ref: ScriptureRef | null;
+  passage_start: string | null;
+  passage_end: string | null;
+  translation_version: string | null;
+  scripture_text_snapshot: string | null;
+  source_context: GatheringSourceContext | null;
+  publication_state: GatheringPublicationState;
   is_answered: boolean;
   praying_count: number;
   created_at: string;

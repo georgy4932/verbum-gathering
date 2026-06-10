@@ -12,6 +12,7 @@ import type {
   GatheringDiscussionReply,
   GatheringPrayerRequest,
   GatheringLiveSession,
+  CompanionNoteKind,
 } from "@/lib/types/domain";
 
 type ActionResult<T = undefined> =
@@ -352,4 +353,144 @@ export async function createLiveSession(
   logGatheringEvent("live_session_scheduled", user.id, gatheringId, { title, scheduled_at });
   revalidatePath(`/gatherings/${gatheringSlug}/live`);
   return { success: true, data: data as GatheringLiveSession };
+}
+
+// ── Companion → Gathering (Copy/Publish) ─────────────────────────────────
+//
+// Shared content is a one-time snapshot of a private Companion item — never
+// a live reference. Re-sharing the same Companion item creates another,
+// independent Gathering row (no dedupe, no last_shared_at, no back-link).
+
+const THREAD_TITLE_MAX = 200;
+const THREAD_BODY_MAX = 5000;
+const PRAYER_BODY_MAX = 1000;
+
+export type ShareableGathering = Pick<Gathering, "id" | "slug" | "name" | "visibility">;
+
+// Gatherings the current user is a member of — used to populate the
+// "Share to Gathering" picker. RLS-scoped: only returns gatherings this
+// user can actually post into.
+export async function listMyGatheringsForSharing(): Promise<ShareableGathering[]> {
+  const { supabase, user } = await getAuthUser();
+  if (!user) return [];
+
+  const { data: memberships } = await supabase
+    .from("gathering_members")
+    .select("gathering_id")
+    .eq("user_id", user.id);
+
+  const gatheringIds = (memberships ?? []).map((m: { gathering_id: string }) => m.gathering_id);
+  if (gatheringIds.length === 0) return [];
+
+  const { data } = await supabase
+    .from("gatherings")
+    .select("id, slug, name, visibility")
+    .in("id", gatheringIds)
+    .eq("is_active", true)
+    .order("name", { ascending: true });
+
+  return (data ?? []) as ShareableGathering[];
+}
+
+export async function publishCompanionNoteToGathering(
+  noteId: string,
+  gatheringId: string,
+  options?: {
+    titleOverride?: string;
+    scriptureContext?: {
+      translationVersion?: string;
+      scriptureTextSnapshot?: string;
+    };
+  },
+): Promise<ActionResult<{ gatheringSlug: string; gatheringName: string; kind: CompanionNoteKind }>> {
+  const { supabase, user } = await getAuthUser();
+  if (!user) return { success: false, error: "Sign in to share to a Gathering." };
+
+  // Re-fetch the source note inside the action — never trust a
+  // client-supplied kind/body/passage. Ownership is enforced both here
+  // and by RLS ("Companion notes: owner").
+  const { data: note, error: noteError } = await supabase
+    .from("companion_notes")
+    .select("*")
+    .eq("id", noteId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (noteError || !note) return { success: false, error: "Note not found." };
+
+  // Membership pre-check (also enforced by RLS on the insert below).
+  const membership = await getMyMembership(gatheringId);
+  if (!membership) return { success: false, error: "You must be a member of this Gathering to share here." };
+
+  const { data: gathering } = await supabase
+    .from("gatherings")
+    .select("id, slug, name")
+    .eq("id", gatheringId)
+    .single();
+
+  if (!gathering) return { success: false, error: "Gathering not found." };
+
+  const passage_ref = note.passage_ref as string;
+  const body = (note.body as string).trim();
+  const translation_version = options?.scriptureContext?.translationVersion ?? null;
+  const scripture_text_snapshot = options?.scriptureContext?.scriptureTextSnapshot ?? null;
+
+  // Branch on the persisted DB kind — never on a client-provided value.
+  if (note.kind === "prayer") {
+    if (body.length > PRAYER_BODY_MAX) {
+      return { success: false, error: `Prayer point is too long to share (max ${PRAYER_BODY_MAX} characters).` };
+    }
+
+    const { error } = await supabase
+      .from("gathering_prayer_requests")
+      .insert({
+        gathering_id: gatheringId,
+        author_id: user.id,
+        body,
+        passage_ref,
+        translation_version,
+        scripture_text_snapshot,
+        source_context: "companion_prayer",
+        publication_state: "shared",
+      });
+
+    if (error) return { success: false, error: "Could not share prayer point." };
+
+    logGatheringEvent("companion_note_published", user.id, gatheringId, { kind: "prayer" });
+    revalidatePath(`/gatherings/${gathering.slug}/prayer`);
+    return { success: true, data: { gatheringSlug: gathering.slug, gatheringName: gathering.name, kind: "prayer" } };
+  }
+
+  // kind === "note" → discussion thread, with a server-generated title.
+  if (body.length > THREAD_BODY_MAX) {
+    return { success: false, error: `Reflection is too long to share (max ${THREAD_BODY_MAX} characters).` };
+  }
+
+  let title = (options?.titleOverride ?? "").trim();
+  if (!title) {
+    title = passage_ref ? `Reflection on ${passage_ref}` : "Shared reflection";
+  }
+  if (title.length > THREAD_TITLE_MAX) {
+    return { success: false, error: `Title is too long to share (max ${THREAD_TITLE_MAX} characters).` };
+  }
+
+  const { error } = await supabase
+    .from("gathering_discussion_threads")
+    .insert({
+      gathering_id: gatheringId,
+      author_id: user.id,
+      title,
+      body,
+      passage_ref,
+      translation_version,
+      scripture_text_snapshot,
+      source_context: "companion_note",
+      publication_state: "shared",
+    });
+
+  if (error) return { success: false, error: "Could not share reflection." };
+
+  logGatheringEvent("companion_note_published", user.id, gatheringId, { kind: "note" });
+  revalidatePath(`/gatherings/${gathering.slug}/discussion`);
+  return { success: true, data: { gatheringSlug: gathering.slug, gatheringName: gathering.name, kind: "note" } };
 }
