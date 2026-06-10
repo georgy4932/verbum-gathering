@@ -39,8 +39,6 @@ export default async function RootLayout({
             <nav className="nav-links" aria-label="Primary navigation">
               <Link href="/companion">Companion</Link>
               <Link href="/gathering">Gathering</Link>
-              <Link href="/studio">Studio</Link>
-              <Link href="/worship">Worship</Link>
               <span className="nav-divider" aria-hidden="true" />
               <Link href="/today">Today</Link>
               <span className="nav-divider" aria-hidden="true" />
