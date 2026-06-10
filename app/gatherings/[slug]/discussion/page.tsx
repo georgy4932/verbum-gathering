@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getGathering, getMyMembership, listThreads } from "@/app/actions/gatherings";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { GatheringDiscussionThread } from "@/lib/types/domain";
+import SourceProvenance from "@/components/gathering/source-provenance";
 
 export const dynamic = "force-dynamic";
 
@@ -58,6 +59,11 @@ export default async function DiscussionPage({
                   {thread.body.slice(0, 160)}{thread.body.length > 160 ? "…" : ""}
                 </p>
               )}
+              <SourceProvenance
+                sourceContext={thread.source_context}
+                passageRef={thread.passage_ref}
+                translationVersion={thread.translation_version}
+              />
               <p style={{ margin: 0, color: "var(--stone)", fontSize: 11, opacity: 0.5 }}>
                 {new Date(thread.created_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}
               </p>

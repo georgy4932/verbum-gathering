@@ -9,6 +9,7 @@ import {
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import PrayingButton from "@/components/gathering/praying-button";
 import ReportButton from "@/components/gathering/report-button";
+import SourceProvenance from "@/components/gathering/source-provenance";
 import type { GatheringPrayerRequest } from "@/lib/types/domain";
 
 export const dynamic = "force-dynamic";
@@ -88,6 +89,11 @@ export default async function PrayerPage({
               <p style={{ margin: 0, color: "var(--cream)", fontSize: 15, lineHeight: 1.75, whiteSpace: "pre-wrap" }}>
                 {req.body}
               </p>
+              <SourceProvenance
+                sourceContext={req.source_context}
+                passageRef={req.passage_ref}
+                translationVersion={req.translation_version}
+              />
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
                 <p style={{ margin: 0, color: "var(--stone)", fontSize: 11, opacity: 0.5 }}>
                   {new Date(req.created_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}
