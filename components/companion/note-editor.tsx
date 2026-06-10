@@ -2,11 +2,26 @@
 
 import { useState, useTransition } from "react";
 import { addCompanionNote, updateCompanionNote, deleteCompanionNote } from "@/app/actions/companion";
-import type { CompanionNote } from "@/lib/types/domain";
+import type { ShareableGathering } from "@/app/actions/gatherings";
+import { ShareToGathering } from "./share-to-gathering";
+import type { CompanionNote, CompanionNoteKind } from "@/lib/types/domain";
+
+interface ScriptureContext {
+  translationVersion?: string;
+  scriptureTextSnapshot?: string;
+}
 
 // ── Note list entry ────────────────────────────────────────────────────────
 
-function NoteEntry({ note }: { note: CompanionNote }) {
+function NoteEntry({
+  note,
+  gatherings,
+  scriptureContext,
+}: {
+  note: CompanionNote;
+  gatherings: ShareableGathering[];
+  scriptureContext?: ScriptureContext;
+}) {
   const [editing, setEditing] = useState(false);
   const [body, setBody] = useState(note.body);
   const [isPending, startTransition] = useTransition();
@@ -42,9 +57,19 @@ function NoteEntry({ note }: { note: CompanionNote }) {
       gap: 10,
     }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ fontSize: 11, color: "var(--stone)", letterSpacing: "0.06em" }}>
-          {dateStr}
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {note.kind === "prayer" && (
+            <span style={{
+              fontSize: 10, fontWeight: 700, letterSpacing: "0.15em",
+              textTransform: "uppercase", color: "var(--companion)",
+            }}>
+              🙏 Prayer Point
+            </span>
+          )}
+          <span style={{ fontSize: 11, color: "var(--stone)", letterSpacing: "0.06em" }}>
+            {dateStr}
+          </span>
+        </div>
         <div style={{ display: "flex", gap: 12 }}>
           <button
             onClick={() => setEditing((e) => !e)}
@@ -84,21 +109,46 @@ function NoteEntry({ note }: { note: CompanionNote }) {
           {note.body}
         </p>
       )}
+
+      {!editing && (
+        <ShareToGathering note={note} gatherings={gatherings} scriptureContext={scriptureContext} />
+      )}
     </div>
   );
 }
 
-// ── New note form ──────────────────────────────────────────────────────────
+// ── New note / prayer point form ─────────────────────────────────────────────
 
-function AddNoteForm({ passageRef }: { passageRef: string }) {
+const ADD_FORM_COPY: Record<CompanionNoteKind, {
+  buttonLabel: string;
+  placeholder: string;
+  saveLabel: string;
+  savingLabel: string;
+}> = {
+  note: {
+    buttonLabel: "+ Add a reflection",
+    placeholder: "Write a reflection on this passage…",
+    saveLabel: "Save reflection",
+    savingLabel: "Saving…",
+  },
+  prayer: {
+    buttonLabel: "🙏 Raise a Prayer Point",
+    placeholder: "Write a prayer point for this passage…",
+    saveLabel: "Save prayer point",
+    savingLabel: "Saving…",
+  },
+};
+
+function AddNoteForm({ passageRef, kind }: { passageRef: string; kind: CompanionNoteKind }) {
   const [open, setOpen] = useState(false);
   const [body, setBody] = useState("");
   const [isPending, startTransition] = useTransition();
+  const copy = ADD_FORM_COPY[kind];
 
   function handleSubmit() {
     if (!body.trim()) return;
     startTransition(async () => {
-      await addCompanionNote(passageRef, body);
+      await addCompanionNote(passageRef, body, kind);
       setBody("");
       setOpen(false);
     });
@@ -120,7 +170,7 @@ function AddNoteForm({ passageRef }: { passageRef: string }) {
           alignSelf: "flex-start",
         }}
       >
-        + Add a reflection
+        {copy.buttonLabel}
       </button>
     );
   }
@@ -130,7 +180,7 @@ function AddNoteForm({ passageRef }: { passageRef: string }) {
       <textarea
         value={body}
         onChange={(e) => setBody(e.target.value)}
-        placeholder="Write a reflection on this passage…"
+        placeholder={copy.placeholder}
         rows={5}
         style={textareaStyle}
         autoFocus
@@ -141,7 +191,7 @@ function AddNoteForm({ passageRef }: { passageRef: string }) {
           disabled={isPending || !body.trim()}
           style={saveButtonStyle}
         >
-          {isPending ? "Saving…" : "Save reflection"}
+          {isPending ? copy.savingLabel : copy.saveLabel}
         </button>
         <button
           onClick={() => { setOpen(false); setBody(""); }}
@@ -159,9 +209,11 @@ function AddNoteForm({ passageRef }: { passageRef: string }) {
 interface NoteEditorProps {
   passageRef: string;
   existingNotes: CompanionNote[];
+  memberGatherings?: ShareableGathering[];
+  scriptureContext?: ScriptureContext;
 }
 
-export default function NoteEditor({ passageRef, existingNotes }: NoteEditorProps) {
+export default function NoteEditor({ passageRef, existingNotes, memberGatherings = [], scriptureContext }: NoteEditorProps) {
   return (
     <section style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ borderTop: "1px solid var(--faint)", paddingTop: 32 }}>
@@ -171,11 +223,14 @@ export default function NoteEditor({ passageRef, existingNotes }: NoteEditorProp
 
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 16 }}>
           {existingNotes.map((note) => (
-            <NoteEntry key={note.id} note={note} />
+            <NoteEntry key={note.id} note={note} gatherings={memberGatherings} scriptureContext={scriptureContext} />
           ))}
         </div>
 
-        <AddNoteForm passageRef={passageRef} />
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <AddNoteForm passageRef={passageRef} kind="note" />
+          <AddNoteForm passageRef={passageRef} kind="prayer" />
+        </div>
       </div>
     </section>
   );

@@ -75,11 +75,11 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Four Movements */}
+      {/* Ways In */}
       <section style={{ padding: "2.5rem 1.25rem 3rem", borderTop: "1px solid var(--faint)" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
           <div style={{ marginBottom: 32 }}>
-            <span className="eyebrow">Four movements</span>
+            <span className="eyebrow">Ways in</span>
             <h2 style={{ fontSize: "clamp(1.4rem, 2.5vw, 1.9rem)", marginBottom: 8 }}>
               One coherent life of faith
             </h2>
@@ -102,20 +102,6 @@ export default async function HomePage() {
               <h2>The Word shared</h2>
               <p>Prayer rooms, Bible studies, live gatherings, and fellowship spaces ordered around Scripture and guided presence.</p>
               <span className="enter">Enter gathering →</span>
-            </Link>
-
-            <Link href="/studio" className="movement-card studio">
-              <span className="movement-label">Studio</span>
-              <h2>The Word proclaimed</h2>
-              <p>Sermons, devotions, and teachings rooted in Scripture — from receiving truth to proclaiming it.</p>
-              <span className="enter">Listen →</span>
-            </Link>
-
-            <Link href="/worship" className="movement-card worship">
-              <span className="movement-label">Worship</span>
-              <h2>The Word embodied</h2>
-              <p>Music, liturgy, silence, and sacred practice. Truth becomes devotion and rhythm, not just information.</p>
-              <span className="enter">Enter worship →</span>
             </Link>
 
           </div>

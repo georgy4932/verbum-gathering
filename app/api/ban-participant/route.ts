@@ -1,6 +1,6 @@
 import { RoomServiceClient } from "livekit-server-sdk";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
@@ -33,6 +33,8 @@ export async function POST(request: Request) {
     if (!moderator?.can_moderate_participants) {
       return Response.json({ error: "Forbidden" }, { status: 403 });
     }
+
+    const supabaseAdmin = getSupabaseAdmin();
 
     await supabaseAdmin.from("room_bans").insert({
       room_slug: roomSlug,

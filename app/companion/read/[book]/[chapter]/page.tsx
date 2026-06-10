@@ -5,6 +5,7 @@ import { getPassageText, isValidVersion, type BibleVersion } from "@/lib/bible/a
 import { getCurrentUserProfile } from "@/lib/profile";
 import { getNotesForPassage, getPassageSavedStatus, getThreadForPassage } from "@/lib/db/companion";
 import { getHighlightsForChapter } from "@/app/actions/companion";
+import { listMyGatheringsForSharing } from "@/app/actions/gatherings";
 import NoteEditor from "@/components/companion/note-editor";
 import AICompanion from "@/components/companion/ai-companion";
 import SavePassageButton from "./save-passage-button";
@@ -51,14 +52,15 @@ export default async function PassagePage({
 
   const passageData = await getPassageText(bookSlug, chapter, requestedVersion);
 
-  const [notes, isSaved, thread, highlightMap] = user
+  const [notes, isSaved, thread, highlightMap, memberGatherings] = user
     ? await Promise.all([
         getNotesForPassage(user.id, passageRef),
         getPassageSavedStatus(user.id, passageRef),
         getThreadForPassage(user.id, passageRef),
         getHighlightsForChapter(bookData.name, chapter),
+        listMyGatheringsForSharing(),
       ])
-    : [[], false, null, new Map<number, string>()];
+    : [[], false, null, new Map<number, string>(), []];
 
   const servedVersion: BibleVersion = passageData?.version ?? requestedVersion;
   const wasFallback = passageData !== null && servedVersion !== requestedVersion;
@@ -174,7 +176,15 @@ export default async function PassagePage({
         {/* Notes */}
         <div id="note-editor">
           {user ? (
-            <NoteEditor passageRef={passageRef} existingNotes={notes} />
+            <NoteEditor
+              passageRef={passageRef}
+              existingNotes={notes}
+              memberGatherings={memberGatherings}
+              scriptureContext={passageData ? {
+                translationVersion: servedVersion,
+                scriptureTextSnapshot: passageData.fullText,
+              } : undefined}
+            />
           ) : (
             <div style={{ borderTop: "1px solid var(--faint)", paddingTop: 32 }}>
               <p style={{ fontSize: 14, color: "var(--stone)", lineHeight: 1.7 }}>

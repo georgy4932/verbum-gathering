@@ -27,12 +27,17 @@ export interface UserProfile {
 // ── Companion — The Word Interpreted ──────────────────────────────────────
 // All companion data is private. Never publicly visible.
 
+// 'prayer' is an MVP compromise — see migration 018. Revisit if prayer
+// points acquire a distinct lifecycle (reminders, answered-state, etc.).
+export type CompanionNoteKind = "note" | "prayer";
+
 export interface CompanionNote {
   id: string;
   user_id: string;
   passage_ref: ScriptureRef;
   scripture_refs: ScriptureRef[];
   body: string;
+  kind: CompanionNoteKind;
   created_at: string;
   updated_at: string;
 }
@@ -207,6 +212,11 @@ export interface DevotionalPractice {
 export type GatheringVisibility = "public" | "community" | "private";
 export type GatheringMemberRole = "host" | "moderator" | "member";
 
+// Provenance of a published Companion → Gathering copy. 'manual' covers
+// content authored directly in a Gathering (no Companion source).
+export type GatheringSourceContext = "companion_highlight" | "companion_note" | "companion_prayer" | "manual";
+export type GatheringPublicationState = "shared" | "archived";
+
 export interface Gathering {
   id: string;
   slug: string;
@@ -249,6 +259,12 @@ export interface GatheringDiscussionThread {
   title: string;
   body: string | null;
   passage_ref: ScriptureRef | null;
+  passage_start: string | null;
+  passage_end: string | null;
+  translation_version: string | null;
+  scripture_text_snapshot: string | null;
+  source_context: GatheringSourceContext | null;
+  publication_state: GatheringPublicationState;
   is_pinned: boolean;
   reply_count: number;
   created_at: string;
@@ -268,6 +284,13 @@ export interface GatheringPrayerRequest {
   gathering_id: string;
   author_id: string | null;
   body: string;
+  passage_ref: ScriptureRef | null;
+  passage_start: string | null;
+  passage_end: string | null;
+  translation_version: string | null;
+  scripture_text_snapshot: string | null;
+  source_context: GatheringSourceContext | null;
+  publication_state: GatheringPublicationState;
   is_answered: boolean;
   praying_count: number;
   created_at: string;

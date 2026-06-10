@@ -9,7 +9,8 @@ export type GatheringEventType =
   | "private_access_denied"
   | "study_post_created"
   | "discussion_thread_created"
-  | "live_session_scheduled";
+  | "live_session_scheduled"
+  | "companion_note_published";
 
 /**
  * Fire-and-forget audit log. Never await — never block the action response.

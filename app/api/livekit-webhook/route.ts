@@ -1,5 +1,5 @@
 import { WebhookReceiver } from "livekit-server-sdk";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
@@ -17,6 +17,7 @@ export async function POST(request: Request) {
   }
 
   const receiver = new WebhookReceiver(apiKey, apiSecret);
+  const supabaseAdmin = getSupabaseAdmin();
 
   try {
     const event = await receiver.receive(rawBody, authHeader);

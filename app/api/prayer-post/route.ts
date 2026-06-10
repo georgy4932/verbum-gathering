@@ -1,5 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
@@ -74,6 +74,8 @@ export async function POST(request: Request) {
     if (error) {
       return Response.json({ error: "Unable to share prayer" }, { status: 500 });
     }
+
+    const supabaseAdmin = getSupabaseAdmin();
 
     await supabaseAdmin.from("user_cooldowns").upsert(
       {

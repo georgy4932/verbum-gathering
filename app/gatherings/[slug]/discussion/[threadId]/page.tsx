@@ -9,6 +9,7 @@ import {
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { GatheringDiscussionReply } from "@/lib/types/domain";
 import ReportButton from "@/components/gathering/report-button";
+import SourceProvenance from "@/components/gathering/source-provenance";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +44,11 @@ export default async function ThreadPage({
           ← Discussion
         </a>
         <h2 style={{ margin: 0, fontSize: "1.4rem", color: "var(--cream)", lineHeight: 1.2 }}>{thread.title}</h2>
+        <SourceProvenance
+          sourceContext={thread.source_context}
+          passageRef={thread.passage_ref}
+          translationVersion={thread.translation_version}
+        />
         {thread.body && (
           <p style={{ margin: 0, color: "var(--muted)", fontSize: 15, lineHeight: 1.75, whiteSpace: "pre-wrap" }}>
             {thread.body}
